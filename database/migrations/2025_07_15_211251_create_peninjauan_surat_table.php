@@ -16,6 +16,7 @@ class CreatePeninjauanSuratTable extends Migration
             $table->timestamps();
         });
     }
+   
 
     public function down()
     {

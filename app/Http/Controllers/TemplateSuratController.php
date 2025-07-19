@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\TemplateSurat;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Response;
 
 class TemplateSuratController extends Controller
 {
@@ -119,18 +120,22 @@ class TemplateSuratController extends Controller
     /**
      * Download file template
      */
-    public function download($id)
-    {
-        $t = TemplateSurat::findOrFail($id);
+public function download($id)
+{
+    $t = TemplateSurat::findOrFail($id);
 
-        $path = storage_path('app/public/' . $t->file_path);
-        if (!file_exists($path)) {
-            return back()->with('error', 'File tidak ditemukan di server.');
-        }
+    $path = storage_path('app/public/' . $t->file_path);
 
-        return response()->download($path);
+    if (!file_exists($path)) {
+        return back()->with('error', 'File tidak ditemukan di server.');
     }
 
+    // Pastikan header dan isi sesuai
+    return Response::make(file_get_contents($path), 200, [
+        'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'Content-Disposition' => 'attachment; filename="' . basename($path) . '"',
+    ]);
+}
     /**
      * Menghapus template
      */
