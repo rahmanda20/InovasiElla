@@ -1,3 +1,4 @@
+
 <?php
 
 use Illuminate\Support\Facades\Route;
@@ -13,6 +14,8 @@ use App\Http\Controllers\TemplateSuratController;
 use App\Http\Controllers\PeninjauanSuratController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SuratController;
+use App\Http\Controllers\RabController;
+
 
 // Middleware untuk user yang sudah login (baik user biasa atau admin)
 Route::middleware(['auth'])->group(function () {
@@ -114,11 +117,29 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/{id}/{key}', [PembangunanembungdanairController::class, 'destroy'])->name('Pembangunan-embung-dan-air.destroy');
     });
 
+ 
     // 🖥️ Dashboard
     Route::get('/dashboard', function () {
         return view('dashboard');
     })->middleware(['verified'])->name('dashboard');
 });
+
+
+
+
+Route::get('/rab', [RabController::class, 'index'])->name('rab.index');
+Route::get('/rab/create', [RabController::class, 'create'])->name('rab.create');
+Route::post('/rab', [RabController::class, 'store'])->name('rab.store');
+Route::get('/rab/{id}', [RabController::class, 'show'])->name('rab.show');
+Route::get('/rab/{id}/edit', [RabController::class, 'edit'])->name('rab.edit');
+Route::put('/rab/{id}', [RabController::class, 'update'])->name('rab.update');
+Route::delete('/rab/{id}', [RabController::class, 'destroy'])->name('rab.destroy');
+// routes/web.php
+Route::get('rab/{rab}/export-view', [RabController::class, 'exportFromView'])->name('rab.export.view');
+Route::get('rab/{rab}/download-excel', [RabController::class, 'downloadExcel'])->name('rab.download.excel');
+Route::get('/rab/{rab}/download-pdf', [RabController::class, 'downloadPdf'])->name('rab.downloadPdf');
+
+
 
 // 🔐 Route Auth (Login, Register, etc.)
 require __DIR__.'/auth.php';
