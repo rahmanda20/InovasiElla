@@ -259,6 +259,8 @@ public function store(Request $request)
     ]);
 }
 
+
+
 public function downloadZip(Request $request)
 {
     $request->validate([
@@ -277,15 +279,25 @@ public function downloadZip(Request $request)
 
         if ($surat && $surat->file_excel && Storage::disk('public')->exists($surat->file_excel)) {
             $fullPath = Storage::disk('public')->path($surat->file_excel);
+
+            // Format Nama File ZIP: JudulSurat - JenisSurat - JenisDokumen (huruf awal kapital)
+            $judulSurat   = ucwords(strtolower($request->judul_surat));
+            $jenisSurat   = ucwords(strtolower($jenis));
+            $jenisDokumen = ucwords(strtolower($request->jenis_dokumen));
+
+            $namaFile = "{$judulSurat} - {$jenisSurat} - {$jenisDokumen}";
+            $extension = pathinfo($fullPath, PATHINFO_EXTENSION);
+            $finalName = $namaFile . '.' . $extension;
+
             $files[] = [
                 'path' => $fullPath,
-                'name' => basename($fullPath),
+                'name' => $finalName,
             ];
         }
     }
 
     if (empty($files)) {
-        dd('Tidak ada file ditemukan yang valid.');
+        return response()->json(['message' => 'Tidak ada file ditemukan yang valid.'], 404);
     }
 
     $tempDir = storage_path("app/temp");
@@ -293,20 +305,24 @@ public function downloadZip(Request $request)
         mkdir($tempDir, 0755, true);
     }
 
-    $zipFile = $tempDir . "/{$request->judul_surat}.zip";
+    // Nama file ZIP disimpan dengan format snake-case
+    $zipFileName = Str::slug($request->judul_surat . '_' . $request->jenis_dokumen, '_') . '.zip';
+    $zipFilePath = $tempDir . '/' . $zipFileName;
+
     $zip = new \ZipArchive;
 
-    if ($zip->open($zipFile, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) === TRUE) {
+    if ($zip->open($zipFilePath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) === TRUE) {
         foreach ($files as $file) {
-            $zip->addFile($file['path'], $file['name']); // simpan dalam zip dengan nama file asli
+            $zip->addFile($file['path'], $file['name']);
         }
         $zip->close();
     } else {
-        dd('Gagal membuat file ZIP.');
+        return response()->json(['message' => 'Gagal membuat file ZIP.'], 500);
     }
 
-    return response()->download($zipFile)->deleteFileAfterSend(true);
+    return response()->download($zipFilePath, $zipFileName)->deleteFileAfterSend(true);
 }
+
 
 
 
