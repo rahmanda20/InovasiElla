@@ -8,6 +8,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use ZipArchive;
+use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class SuratController extends Controller
 {
@@ -17,6 +21,8 @@ class SuratController extends Controller
         $surats = Surat::latest()->get();
         return view('dokumen.index', compact('surats'));
     }
+
+    
 
     // Menampilkan pilihan jenis surat
  public function pilihJenis($jenis)
@@ -37,8 +43,48 @@ class SuratController extends Controller
         ['slug' => 'uraian', 'nama' => 'Uraian Singkat Pekerjaan', 'deskripsi' => 'Ringkasan pekerjaan.', 'ikon' => 'Pipe40.svg'],
     ];
 
-    return view('dokumen.jenis', compact('jenis', 'suratOptions', 'dokumenLainnyaOptions'));
+     $surats = Surat::where('jenis_dokumen', $jenis)->latest()->get();
+
+    return view('dokumen.jenis', compact('jenis', 'suratOptions', 'dokumenLainnyaOptions', 'surats'));
 }
+public function getJenisSurat(Request $request)
+{
+    // Ambil data dari query string
+    $judul = $request->query('judul');
+    $jenisDokumen = $request->query('jenis_dokumen');
+
+    // Validasi manual karena GET tidak pakai ->validate()
+    if (!$judul || !$jenisDokumen) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Parameter judul dan jenis_dokumen wajib diisi.',
+        ], 400);
+    }
+
+    // Ambil data dari database
+    $surats = Surat::where('judul_surat', $judul)
+        ->where('jenis_dokumen', $jenisDokumen)
+        ->get(['id', 'jenis_surat']);
+
+    // Jika tidak ada data ditemukan
+    if ($surats->isEmpty()) {
+        return response()->json([
+            'status' => 'empty',
+            'message' => 'Tidak ada data jenis surat ditemukan.',
+            'data' => [],
+        ], 200);
+    }
+
+    // Jika data ditemukan
+    return response()->json([
+        'status' => 'success',
+        'message' => 'Data jenis surat berhasil diambil.',
+        'data' => $surats,
+    ], 200);
+}
+
+
+
 
 public function list($jenis_dokumen, $jenis_surat)
 {
@@ -148,6 +194,122 @@ public function store(Request $request)
             }
         }
     }
+
+
+
+
+
+    public function massCreate(Request $request)
+{
+    $request->validate([
+        'judul' => 'required|string|max:255',
+    ]);
+
+    $judul = $request->judul;
+    $jenisDokumen = 'pengadaan_langsung';
+
+    // Semua jenis surat dari blade
+    $suratOptions = [
+        'sppbj', 'spk', 'spmk', 'bapl', 'hps', 'timeschedule',
+        'kak', 'sskk', 'ssuk', 'uraian'
+    ];
+
+    $created = [];
+    $skipped = [];
+
+    foreach ($suratOptions as $jenisSurat) {
+        // Cek apakah sudah ada surat ini sebelumnya
+        $exists = Surat::where('judul_surat', $judul)
+            ->where('jenis_dokumen', $jenisDokumen)
+            ->where('jenis_surat', $jenisSurat)
+            ->exists();
+
+        if ($exists) {
+            $skipped[] = $jenisSurat;
+            continue;
+        }
+
+        // Simpan surat
+        $surat = Surat::create([
+            'judul_surat' => $judul,
+            'jenis_dokumen' => $jenisDokumen,
+            'jenis_surat' => $jenisSurat,
+        ]);
+
+        $created[] = $jenisSurat;
+
+        // (Opsional) Generate file Excel jika ada template aktif
+        try {
+            $template = TemplateSurat::where('jenis_surat', $jenisSurat)
+                ->where('is_active', true)
+                ->where('file_path', 'like', '%.xlsx')
+                ->first();
+
+            if ($template) {
+                $this->generateExcelFromTemplate($surat, $template);
+            }
+        } catch (\Exception $e) {
+            $skipped[] = $jenisSurat . ' (gagal generate)';
+        }
+    }
+
+    return redirect()->back()->with([
+        'success' => count($created) . ' surat berhasil ditambahkan.',
+        'warning' => count($skipped) > 0 ? 'Beberapa dilewati: ' . implode(', ', $skipped) : null,
+    ]);
+}
+
+public function downloadZip(Request $request)
+{
+    $request->validate([
+        'judul_surat'   => 'required|string',
+        'jenis_surat'   => 'required|array',
+        'jenis_dokumen' => 'required|string',
+    ]);
+
+    $files = [];
+
+    foreach ($request->jenis_surat as $jenis) {
+        $surat = Surat::where('judul_surat', $request->judul_surat)
+            ->where('jenis_surat', $jenis)
+            ->where('jenis_dokumen', $request->jenis_dokumen)
+            ->first();
+
+        if ($surat && $surat->file_excel && Storage::disk('public')->exists($surat->file_excel)) {
+            $fullPath = Storage::disk('public')->path($surat->file_excel);
+            $files[] = [
+                'path' => $fullPath,
+                'name' => basename($fullPath),
+            ];
+        }
+    }
+
+    if (empty($files)) {
+        dd('Tidak ada file ditemukan yang valid.');
+    }
+
+    $tempDir = storage_path("app/temp");
+    if (!file_exists($tempDir)) {
+        mkdir($tempDir, 0755, true);
+    }
+
+    $zipFile = $tempDir . "/{$request->judul_surat}.zip";
+    $zip = new \ZipArchive;
+
+    if ($zip->open($zipFile, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) === TRUE) {
+        foreach ($files as $file) {
+            $zip->addFile($file['path'], $file['name']); // simpan dalam zip dengan nama file asli
+        }
+        $zip->close();
+    } else {
+        dd('Gagal membuat file ZIP.');
+    }
+
+    return response()->download($zipFile)->deleteFileAfterSend(true);
+}
+
+
+
 
     // Export file Template Excel
     public function exportExcel($id)

@@ -25,11 +25,19 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
+    Route::post('/dokumen/download-zip', [SuratController::class, 'downloadZip'])->name('dokumen.download-zip');
+Route::get('/get-jenis-surat', [SuratController::class, 'getJenisSurat']);
+
+
+
     // 📁 Dokumen
     Route::prefix('dokumen')->group(function () {
         Route::get('/', [SuratController::class, 'index'])->name('dokumen.index');
         Route::post('/store', [SuratController::class, 'store'])->name('dokumen.store');
         Route::delete('/delete/{id}', [SuratController::class, 'destroy'])->name('dokumen.delete');
+        Route::post('/surat/mass-create', [SuratController::class, 'massCreate'])->name('surat.mass-create');
+        Route::post('/dokumen/download-zip', [SuratController::class, 'downloadZip'])->name('dokumen.download-zip');
+
 
         // Upload
         Route::post('/upload-belum-ttd/{id}', [SuratController::class, 'uploadBelumTTD'])->name('dokumen.uploadBelumTTD');
@@ -144,6 +152,9 @@ Route::post('/rab/{rab}/upload-kontrak-ttd', [RabController::class, 'uploadKontr
 
 
 
+
+Route::get('/surat/batch/create', [SuratController::class, 'createBatch'])->name('surat.batch.create');
+Route::post('/surat/batch/store', [SuratController::class, 'storeBatch'])->name('surat.batch.store');
 
 // 🔐 Route Auth (Login, Register, etc.)
 require __DIR__.'/auth.php';
