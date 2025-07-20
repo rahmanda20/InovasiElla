@@ -1,6 +1,6 @@
 @extends('layouts.app')
-@section('content')
 
+@section('content')
 <div class="container">
     <div class="row">
         <!-- Header Section -->
@@ -28,7 +28,7 @@
         <div class="row">
             @foreach($jenisSuratOptions as $option)
                 <div class="col-xl-4 col-md-6 col-12">
-                    <a href="{{ route('perencanaan.list', [$jenis, $option['slug']]) }}">
+                    <a href="{{ $option['slug'] === 'hps' ? route('rab.indexkontrak') : route('perencanaan.list', [$jenis, $option['slug']]) }}">
                         <div class="box bg-white pull-up animate__animated animate__lightSpeedInLeft"
                              style="border-bottom: 5px solid #3AA4F2;">
                             <div class="box-body" style="display: flex; align-items: center;">
@@ -40,7 +40,7 @@
 
                                 <!-- Gambar, 40% -->
                                 <div style="flex: 0 0 40%; padding-left: 15px;">
-                                    <img src="../images/svg-icon/color-svg/{{ $option['ikon'] }}" alt="Icon"
+                                    <img src="{{ asset('images/svg-icon/color-svg/' . $option['ikon']) }}" alt="Icon"
                                          style="width: 100%; height: 100px; object-fit: cover;">
                                 </div>
                             </div>
@@ -71,7 +71,7 @@
 
                                 <!-- Gambar, 40% -->
                                 <div style="flex: 0 0 40%; padding-left: 15px;">
-                                    <img src="../images/svg-icon/color-svg/{{ $option['ikon'] }}" alt="Icon"
+                                    <img src="{{ asset('images/svg-icon/color-svg/' . $option['ikon']) }}" alt="Icon"
                                          style="width: 100%; height: 100px; object-fit: cover;">
                                 </div>
                             </div>
@@ -82,5 +82,42 @@
         </div>
     </div>
 </div>
-       
+
+<style>
+.dashboard-btn {
+    background-color: #3AA4F2;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    font-weight: bold;
+    margin-bottom: 20px;
+}
+
+.knowledge-btn {
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    font-weight: bold;
+    margin: 20px 0;
+}
+
+.section-title {
+    color: #3AA4F2;
+    font-weight: bold;
+}
+
+.box {
+    border-radius: 10px;
+    transition: transform 0.3s ease;
+    margin-bottom: 20px;
+}
+
+.box:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+}
+</style>
 @endsection

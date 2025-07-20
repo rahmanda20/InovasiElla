@@ -126,18 +126,22 @@ Route::middleware(['auth'])->group(function () {
 
 
 
-
-Route::get('/rab', [RabController::class, 'index'])->name('rab.index');
-Route::get('/rab/create', [RabController::class, 'create'])->name('rab.create');
+Route::get('/rab/{jenis_dokumen}', [RabController::class, 'index'])->name('rab.index');
+Route::get('/rab/', [RabController::class, 'indexkontrak'])->name('rab.indexkontrak');
+Route::get('/rab/create/{jenis}', [RabController::class, 'create'])->name('rab.create');
 Route::post('/rab', [RabController::class, 'store'])->name('rab.store');
 Route::get('/rab/{id}', [RabController::class, 'show'])->name('rab.show');
 Route::get('/rab/{id}/edit', [RabController::class, 'edit'])->name('rab.edit');
-Route::put('/rab/{id}', [RabController::class, 'update'])->name('rab.update');
+Route::put('/rab/{rab}', [RabController::class, 'update'])->name('rab.update');
 Route::delete('/rab/{id}', [RabController::class, 'destroy'])->name('rab.destroy');
 // routes/web.php
 Route::get('rab/{rab}/export-view', [RabController::class, 'exportFromView'])->name('rab.export.view');
 Route::get('rab/{rab}/download-excel', [RabController::class, 'downloadExcel'])->name('rab.download.excel');
 Route::get('/rab/{rab}/download-pdf', [RabController::class, 'downloadPdf'])->name('rab.downloadPdf');
+Route::get('/rab/{rab}/download-pdf/perencaan', [RabController::class, 'downloadPdfperencenaan'])->name('rab.downloadPdfperencenaan');
+Route::post('/rab/{rab}/upload-kontrak-non-ttd', [RabController::class, 'uploadKontrakNonTTD'])->name('rab.uploadKontrakNonTTD');
+Route::post('/rab/{rab}/upload-kontrak-ttd', [RabController::class, 'uploadKontrakTTD'])->name('rab.uploadKontrakTTD');
+
 
 
 

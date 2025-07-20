@@ -19,37 +19,36 @@ class SuratController extends Controller
     }
 
     // Menampilkan pilihan jenis surat
-  public function pilihJenis($jenis)
+ public function pilihJenis($jenis)
 {
     $suratOptions = [
         ['slug' => 'sppbj', 'nama' => 'Surat Penunjukan Penyedia Barang Jasa (SPPBJ)', 'deskripsi' => 'Menampilkan diagram .', 'ikon' => 'Pipe9.svg'],
-        ['slug' => 'spk', 'nama' => 'Surat Perjanjian Kerja (SPK)/ Surat Perjanjian (SP)', 'deskripsi' => 'Menampilkan data pekerja.', 'ikon' => 'Pipe10.svg'],
-        ['slug' => 'spmk', 'nama' => 'Surat Perintah Mulai Kerja (SPMK)', 'deskripsi' => 'Informasi Memantau status kontrak perusahaan.', 'ikon' => 'Pipe11.svg'],
-        ['slug' => 'bapl', 'nama' => 'Berita Acara Penyerahan Lapangan (BAPL)', 'deskripsi' => 'Menampilkan kalender acara penting organisasi.', 'ikon' => 'Pipe12.svg'],
-        ['slug' => 'hps', 'nama' => 'Harga Perkiraan Sendiri (HPS)', 'deskripsi' => 'Informasi Isu utama yang perlu perhatian.', 'ikon' => 'Pipe13.svg'],
-        ['slug' => 'timeschedule', 'nama' => 'Rencana Time Schedule', 'deskripsi' => 'Informasi Isu utama yang perlu perhatian.', 'ikon' => 'Pipe13.svg'],
+        ['slug' => 'spk', 'nama' => 'Surat Perjanjian Kerja (SPK)/Surat Perjanjian (SP)', 'deskripsi' => 'Menampilkan data pekerja.', 'ikon' => 'Pipe10.svg'],
+        ['slug' => 'spmk', 'nama' => 'Surat Perintah Mulai Kerja (SPMK)', 'deskripsi' => 'Memantau status kontrak perusahaan.', 'ikon' => 'Pipe11.svg'],
+        ['slug' => 'bapl', 'nama' => 'Berita Acara Penyerahan Lapangan (BAPL)', 'deskripsi' => 'Menampilkan kalender acara penting.', 'ikon' => 'Pipe12.svg'],
+        ['slug' => 'hps', 'nama' => 'Harga Perkiraan Sendiri (HPS)', 'deskripsi' => 'Informasi anggaran utama.', 'ikon' => 'Pipe13.svg'],
+        ['slug' => 'timeschedule', 'nama' => 'Rencana Time Schedule', 'deskripsi' => 'Informasi jadwal pelaksanaan.', 'ikon' => 'Pipe13.svg'],
     ];
 
     $dokumenLainnyaOptions = [
-        ['slug' => 'kak', 'nama' => 'Kerangka Acuan Kerja (KAK)/Term Of Reference (TOR)', 'deskripsi' => 'Menampilkan kalender acara penting organisasi.', 'ikon' => 'Pipe18.svg'],
-        ['slug' => 'sskk', 'nama' => 'Syarat-Syarat Khusus Kontrak (SSKK)', 'deskripsi' => 'Informasi Isu utama yang perlu perhatian.', 'ikon' => 'Pipe20.svg'],
-        ['slug' => 'ssuk', 'nama' => 'Syarat-Syarat Umum Kontrak (SSUK)', 'deskripsi' => 'Informasi Isu utama yang perlu perhatian', 'ikon' => 'Pipe19.svg'],
-        ['slug' => 'uraian', 'nama' => 'Uraian singkat Pekerjaan', 'deskripsi' => 'Menampilkan kalender acara penting organisasi.', 'ikon' => 'Pipe40.svg'],
+        ['slug' => 'kak', 'nama' => 'Kerangka Acuan Kerja (KAK)/TOR', 'deskripsi' => 'Ruang lingkup pekerjaan.', 'ikon' => 'Pipe18.svg'],
+        ['slug' => 'sskk', 'nama' => 'Syarat-Syarat Khusus Kontrak (SSKK)', 'deskripsi' => 'Syarat kontrak khusus.', 'ikon' => 'Pipe20.svg'],
+        ['slug' => 'ssuk', 'nama' => 'Syarat-Syarat Umum Kontrak (SSUK)', 'deskripsi' => 'Syarat umum kontrak.', 'ikon' => 'Pipe19.svg'],
+        ['slug' => 'uraian', 'nama' => 'Uraian Singkat Pekerjaan', 'deskripsi' => 'Ringkasan pekerjaan.', 'ikon' => 'Pipe40.svg'],
     ];
 
     return view('dokumen.jenis', compact('jenis', 'suratOptions', 'dokumenLainnyaOptions'));
 }
 
-    // Menampilkan daftar surat berdasarkan jenis
-    public function list($jenis_dokumen, $jenis_surat)
-    {
-        $listSurat = Surat::where('jenis_dokumen', $jenis_dokumen)
-            ->where('jenis_surat', $jenis_surat)
-            ->latest()
-            ->get();
+public function list($jenis_dokumen, $jenis_surat)
+{
+    $listSurat = Surat::where('jenis_dokumen', $jenis_dokumen)
+        ->where('jenis_surat', $jenis_surat)
+        ->latest()
+        ->get();
 
-        return view('dokumen.list', compact('jenis_dokumen', 'jenis_surat', 'listSurat'));
-    }
+    return view('dokumen.list', compact('jenis_dokumen', 'jenis_surat', 'listSurat'));
+}
 
     // Menyimpan surat baru
 public function store(Request $request)

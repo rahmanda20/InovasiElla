@@ -9,60 +9,66 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
+use Illuminate\Support\Facades\Storage;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 
 class RabController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $rabs = Rab::all();
-        return view('rab.index', compact('rabs'));
+        $jenisDokumen = $request->jenis_dokumen ?? session('current_jenis_dokumen');
+        
+        $query = Rab::query();
+        
+        if ($jenisDokumen) {
+            $query->where('jenis_dokumen', $jenisDokumen);
+        }
+        
+        $rabs = $query->latest()->paginate(10);
+        
+        return view('rab.index', compact('rabs', 'jenisDokumen'));
     }
 
-    public function create()
-    {
-        return view('rab.create');
-    }
+ public function indexkontrak()
+{
+    // Ambil semua data tanpa filter jenis_dokumen
+    $rabs = Rab::latest()->paginate(10);
+    return view('rab.index_kontrak', compact('rabs'));
+}
+public function create($jenis)
+{
+    return view('rab.create', [
+        'jenisDokumen' => $jenis // sesuai dengan nama variabel di Blade
+    ]);
+}
+
+
+
+
+    // Method edit yang baru ditambahkan
+  public function edit($id)
+{
+    $rab = Rab::findOrFail($id);
+
+    return view('rab.edit', compact('rab'));
+}
+
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'pekerjaan' => 'required|string',
-            'lokasi' => 'required|string',
-            'masa_pelaksanaan' => 'required|string',
-            'sumber_dana' => 'required|string',
-            // Validasi untuk data personal
-            'biaya_langsung_personil_profesional_staf.*.uraian' => 'required|string',
-            'biaya_langsung_personil_profesional_staf.*.volume' => 'required|numeric',
-            'biaya_langsung_personil_profesional_staf.*.satuan' => 'required|string',
-            'biaya_langsung_personil_profesional_staf.*.harga_satuan' => 'required|numeric',
-            // Validasi untuk data non personal
-            'biaya_langsung_non_personil_biaya_operasional_kantor.*.uraian' => 'required|string',
-            'biaya_langsung_non_personil_biaya_operasional_kantor.*.jumlah' => 'required|numeric',
-            'biaya_langsung_non_personil_biaya_operasional_kantor.*.satuan' => 'required|string',
-            'biaya_langsung_non_personil_biaya_operasional_kantor.*.harga_satuan' => 'required|numeric',
-            // Data penyedia dan pejabat
-            'nama_penyedia' => 'required|string',
-            'nama_perusahaan_penyedia' => 'required|string',
-            'jabatan_penyedia' => 'required|string',
-            'nama_pejabat_penandatangan_kontrak' => 'required|string',
-            'jabatan_pejabat' => 'required|string',
-            'nip_pejabat' => 'required|string',
-        ]);
+        // Process personnel costs
+        $profesionalStaf = $this->processProfesionalStaf($request->biaya_langsung_personil_profesional_staf ?? []);
+        $tenagaAhliSub = $this->processTenagaAhliSub($request->biaya_langsung_personil_tenaga_ahli_sub_profesional ?? []);
+        $tenagaPendukung = $this->processTenagaPendukung($request->biaya_langsung_personil_tenaga_pendukung ?? []);
 
-        // Proses data personal
-        $profesionalStaf = $this->processProfesionalStaf($request->biaya_langsung_personil_profesional_staf);
-        $tenagaAhliSub = $this->processTenagaAhliSub($request->biaya_langsung_personil_tenaga_ahli_sub_profesional);
-        $tenagaPendukung = $this->processTenagaPendukung($request->biaya_langsung_personil_tenaga_pendukung);
+        // Process non-personnel costs
+        $operasionalKantor = $this->processOperasionalKantor($request->biaya_langsung_non_personil_biaya_operasional_kantor ?? []);
+        $perjalananDinas = $this->processNonPersonil($request->biaya_perjalanan_dinas ?? [], 'biaya_perjalanan_dinas');
+        $depresiasi = $this->processNonPersonil($request->depresiasi ?? [], 'depresiasi');
+        $biayaPelaporan = $this->processNonPersonil($request->biaya_pelaporan ?? [], 'biaya_pelaporan');
 
-        // Proses data non personal
-        $operasionalKantor = $this->processOperasionalKantor($request->biaya_langsung_non_personil_biaya_operasional_kantor);
-        $perjalananDinas = $this->processNonPersonil($request->biaya_perjalanan_dinas, 'biaya_perjalanan_dinas');
-        $depresiasi = $this->processNonPersonil($request->depresiasi, 'depresiasi');
-        $biayaPelaporan = $this->processNonPersonil($request->biaya_pelaporan, 'biaya_pelaporan');
-
-        // Hitung total
+        // Calculate totals
         $totalProfesional = collect($profesionalStaf)->sum('jumlah_harga');
         $totalTenagaAhli = collect($tenagaAhliSub)->sum('jumlah_biaya');
         $totalTenagaPendukung = collect($tenagaPendukung)->sum('jumlah_biaya');
@@ -74,10 +80,13 @@ class RabController extends Controller
         $totalPersonal = $totalProfesional + $totalTenagaAhli + $totalTenagaPendukung;
         $totalNonPersonal = $totalOperasional + $totalPerjalanan + $totalDepresiasi + $totalPelaporan;
         $jumlahAB = $totalPersonal + $totalNonPersonal;
-        $ppn = $jumlahAB * 0.11;
+        
+        // PPN calculation - default to 0 if not provided
+        $ppnPercentage = $request->ppn_percentage ?? 0;
+        $ppn = $jumlahAB * ($ppnPercentage / 100);
         $totalAll = $jumlahAB + $ppn;
 
-        // Format uraian kegiatan untuk disimpan di database
+        // Format activity descriptions for database
         $uraianPersonal = [
             ['uraian' => 'Profesional Staf', 'jumlah' => $totalProfesional],
             ['uraian' => 'Tenaga Ahli Sub Profesional', 'jumlah' => $totalTenagaAhli],
@@ -91,12 +100,14 @@ class RabController extends Controller
             ['uraian' => 'Biaya Pelaporan', 'jumlah' => $totalPelaporan]
         ];
 
-        // Simpan ke database
+        // Save to database
         Rab::create([
+            'jenis_dokumen' => $request->jenis_dokumen,
             'pekerjaan' => $request->pekerjaan,
             'lokasi' => $request->lokasi,
             'masa_pelaksanaan' => $request->masa_pelaksanaan,
             'sumber_dana' => $request->sumber_dana,
+            'ppn_percentage' => $ppnPercentage,
             'uraian_kegiatan_biaya_langsung_personal' => $uraianPersonal,
             'uraian_kegiatan_biaya_langsung_non_personal' => $uraianNonPersonal,
             'biaya_langsung_personil_profesional_staf' => $profesionalStaf,
@@ -126,35 +137,165 @@ class RabController extends Controller
             'terbilang' => $this->terbilang($totalAll) . ' Rupiah'
         ]);
 
-        return redirect()->route('rab.index')->with('success', 'RAB berhasil disimpan');
+        return redirect()->route('rab.index', ['jenis_dokumen' => $request->jenis_dokumen])
+            ->with('success', 'Dokumen ' . strtoupper($request->jenis_dokumen) . ' berhasil disimpan');
+    }
+
+    // Method untuk update data RAB
+    public function update(Request $request, Rab $rab)
+    {
+        // Process personnel costs
+        $profesionalStaf = $this->processProfesionalStaf($request->biaya_langsung_personil_profesional_staf ?? []);
+        $tenagaAhliSub = $this->processTenagaAhliSub($request->biaya_langsung_personil_tenaga_ahli_sub_profesional ?? []);
+        $tenagaPendukung = $this->processTenagaPendukung($request->biaya_langsung_personil_tenaga_pendukung ?? []);
+
+        // Process non-personnel costs
+        $operasionalKantor = $this->processOperasionalKantor($request->biaya_langsung_non_personil_biaya_operasional_kantor ?? []);
+        $perjalananDinas = $this->processNonPersonil($request->biaya_perjalanan_dinas ?? [], 'biaya_perjalanan_dinas');
+        $depresiasi = $this->processNonPersonil($request->depresiasi ?? [], 'depresiasi');
+        $biayaPelaporan = $this->processNonPersonil($request->biaya_pelaporan ?? [], 'biaya_pelaporan');
+
+        // Calculate totals
+        $totalProfesional = collect($profesionalStaf)->sum('jumlah_harga');
+        $totalTenagaAhli = collect($tenagaAhliSub)->sum('jumlah_biaya');
+        $totalTenagaPendukung = collect($tenagaPendukung)->sum('jumlah_biaya');
+        $totalOperasional = collect($operasionalKantor)->sum('jumlah_biaya');
+        $totalPerjalanan = collect($perjalananDinas)->sum('jumlah_biaya');
+        $totalDepresiasi = collect($depresiasi)->sum('jumlah_biaya');
+        $totalPelaporan = collect($biayaPelaporan)->sum('jumlah_biaya');
+
+        $totalPersonal = $totalProfesional + $totalTenagaAhli + $totalTenagaPendukung;
+        $totalNonPersonal = $totalOperasional + $totalPerjalanan + $totalDepresiasi + $totalPelaporan;
+        $jumlahAB = $totalPersonal + $totalNonPersonal;
+        
+        // PPN calculation - default to 0 if not provided
+        $ppnPercentage = $request->ppn_percentage ?? 0;
+        $ppn = $jumlahAB * ($ppnPercentage / 100);
+        $totalAll = $jumlahAB + $ppn;
+
+        // Format activity descriptions for database
+        $uraianPersonal = [
+            ['uraian' => 'Profesional Staf', 'jumlah' => $totalProfesional],
+            ['uraian' => 'Tenaga Ahli Sub Profesional', 'jumlah' => $totalTenagaAhli],
+            ['uraian' => 'Tenaga Pendukung', 'jumlah' => $totalTenagaPendukung]
+        ];
+
+        $uraianNonPersonal = [
+            ['uraian' => 'Biaya Operasional Kantor', 'jumlah' => $totalOperasional],
+            ['uraian' => 'Biaya Dinas Allowance', 'jumlah' => $totalPerjalanan],
+            ['uraian' => 'Depresiasi Perlengkapan', 'jumlah' => $totalDepresiasi],
+            ['uraian' => 'Biaya Pelaporan', 'jumlah' => $totalPelaporan]
+        ];
+
+        // Update data in database
+        $rab->update([
+            'pekerjaan' => $request->pekerjaan,
+            'lokasi' => $request->lokasi,
+            'masa_pelaksanaan' => $request->masa_pelaksanaan,
+            'sumber_dana' => $request->sumber_dana,
+            'ppn_percentage' => $ppnPercentage,
+            'uraian_kegiatan_biaya_langsung_personal' => $uraianPersonal,
+            'uraian_kegiatan_biaya_langsung_non_personal' => $uraianNonPersonal,
+            'biaya_langsung_personil_profesional_staf' => $profesionalStaf,
+            'biaya_langsung_personil_tenaga_ahli_sub_profesional' => $tenagaAhliSub,
+            'biaya_langsung_personil_tenaga_pendukung' => $tenagaPendukung,
+            'biaya_langsung_non_personil_biaya_operasional_kantor' => $operasionalKantor,
+            'biaya_perjalanan_dinas' => $perjalananDinas,
+            'depresiasi' => $depresiasi,
+            'biaya_pelaporan' => $biayaPelaporan,
+            'jumlah_biaya_langsung_personil_profesional_staf' => $totalProfesional,
+            'jumlah_biaya_langsung_personil_tenaga_ahli_sub_profesional' => $totalTenagaAhli,
+            'jumlah_biaya_langsung_personil_tenaga_pendukung' => $totalTenagaPendukung,
+            'jumlah_biaya_langsung_non_personil_biaya_operasional_kantor' => $totalOperasional,
+            'jumlah_biaya_perjalanan_dinas' => $totalPerjalanan,
+            'jumlah_depresiasi' => $totalDepresiasi,
+            'jumlah_biaya_pelaporan' => $totalPelaporan,
+            'jumlah_biaya_langsung_personal' => $totalPersonal,
+            'jumlah_biaya_langsung_non_personal' => $totalNonPersonal,
+            'total_keseluruhan' => $totalAll,
+            'ppn' => $ppn,
+            'nama_penyedia' => $request->nama_penyedia,
+            'nama_perusahaan_penyedia' => $request->nama_perusahaan_penyedia,
+            'jabatan_penyedia' => $request->jabatan_penyedia,
+            'nama_pejabat_penandatangan_kontrak' => $request->nama_pejabat_penandatangan_kontrak,
+            'jabatan_pejabat' => $request->jabatan_pejabat,
+            'nip_pejabat' => $request->nip_pejabat,
+            'terbilang' => $this->terbilang($totalAll) . ' Rupiah'
+        ]);
+
+        return redirect()->route('rab.indexkontrak') // Tanpa parameter jenis_dokumen
+        ->with('success', 'Dokumen ' . strtoupper($rab->jenis_dokumen) . ' berhasil diperbarui');
     }
 
     // Method untuk memproses data profesional staf
     private function processProfesionalStaf($items)
     {
         return collect($items)->map(function($item) {
+            $volume = isset($item['volume']) ? (float)$item['volume'] : 0;
+            $hargaSatuan = isset($item['harga_satuan']) ? (float)$item['harga_satuan'] : 0;
+            
             return [
-                'uraian' => $item['uraian'],
-                'volume' => (float)$item['volume'],
-                'satuan' => $item['satuan'],
-                'harga_satuan' => (float)$item['harga_satuan'],
-                'jumlah_harga' => (float)$item['volume'] * (float)$item['harga_satuan'],
-                'sub_items' => isset($item['sub_items']) ? $this->processSubItems($item['sub_items']) : []
+                'uraian' => $item['uraian'] ?? '',
+                'volume' => $volume,
+                'satuan' => $item['satuan'] ?? '',
+                'harga_satuan' => $hargaSatuan,
+                'jumlah_harga' => $volume * $hargaSatuan
             ];
         })->toArray();
     }
+
+  public function uploadKontrakNonTTD(Request $request, Rab $rab)
+{
+    $request->validate([
+        'file_kontrak_non_ttd' => 'required|file|mimes:pdf|max:2048'
+    ]);
+
+    $path = $request->file('file_kontrak_non_ttd')->store('kontrak/non_ttd', 'public');
+
+    $rab->update([
+        'file_kontrak_non_ttd' => $path,
+        'updated_at' => now()
+    ]);
+
+    return response()->json([
+        'message' => 'File kontrak tanpa tanda tangan berhasil diunggah.',
+        'file_path' => Storage::url($path)
+    ]);
+}
+
+public function uploadKontrakTTD(Request $request, Rab $rab)
+{
+    $request->validate([
+        'file_kontrak_ttd' => 'required|file|mimes:pdf|max:2048'
+    ]);
+
+    $path = $request->file('file_kontrak_ttd')->store('kontrak/ttd', 'public');
+
+    $rab->update([
+        'file_kontrak_ttd' => $path,
+        'updated_at' => now()
+    ]);
+
+    return response()->json([
+        'message' => 'File kontrak dengan tanda tangan berhasil diunggah.',
+        'file_path' => Storage::url($path)
+    ]);
+}
+
 
     // Method untuk memproses data tenaga ahli
     private function processTenagaAhliSub($items)
     {
         return collect($items)->map(function($item) {
+            $jumlah = isset($item['jumlah']) ? (float)$item['jumlah'] : 0;
+            $hargaSatuan = isset($item['harga_satuan']) ? (float)$item['harga_satuan'] : 0;
+            
             return [
-                'personil' => $item['personil'],
-                'jumlah' => (float)$item['jumlah'],
-                'satuan' => $item['satuan'],
-                'harga_satuan' => (float)$item['harga_satuan'],
-                'jumlah_biaya' => (float)$item['jumlah'] * (float)$item['harga_satuan'],
-                'sub_items' => isset($item['sub_items']) ? $this->processSubItems($item['sub_items']) : []
+                'personil' => $item['personil'] ?? '',
+                'jumlah' => $jumlah,
+                'satuan' => $item['satuan'] ?? '',
+                'harga_satuan' => $hargaSatuan,
+                'jumlah_biaya' => $jumlah * $hargaSatuan
             ];
         })->toArray();
     }
@@ -163,13 +304,15 @@ class RabController extends Controller
     private function processTenagaPendukung($items)
     {
         return collect($items)->map(function($item) {
+            $jumlah = isset($item['jumlah']) ? (float)$item['jumlah'] : 0;
+            $hargaSatuan = isset($item['harga_satuan']) ? (float)$item['harga_satuan'] : 0;
+            
             return [
-                'personil' => $item['personil'],
-                'jumlah' => (float)$item['jumlah'],
-                'satuan' => $item['satuan'],
-                'harga_satuan' => (float)$item['harga_satuan'],
-                'jumlah_biaya' => (float)$item['jumlah'] * (float)$item['harga_satuan'],
-                'sub_items' => isset($item['sub_items']) ? $this->processSubItems($item['sub_items']) : []
+                'personil' => $item['personil'] ?? '',
+                'jumlah' => $jumlah,
+                'satuan' => $item['satuan'] ?? '',
+                'harga_satuan' => $hargaSatuan,
+                'jumlah_biaya' => $jumlah * $hargaSatuan
             ];
         })->toArray();
     }
@@ -178,13 +321,15 @@ class RabController extends Controller
     private function processOperasionalKantor($items)
     {
         return collect($items)->map(function($item) {
+            $jumlah = isset($item['jumlah']) ? (float)$item['jumlah'] : 0;
+            $hargaSatuan = isset($item['harga_satuan']) ? (float)$item['harga_satuan'] : 0;
+            
             return [
-                'uraian' => $item['uraian'],
-                'jumlah' => (float)$item['jumlah'],
-                'satuan' => $item['satuan'],
-                'harga_satuan' => (float)$item['harga_satuan'],
-                'jumlah_biaya' => (float)$item['jumlah'] * (float)$item['harga_satuan'],
-                'sub_items' => isset($item['sub_items']) ? $this->processSubItems($item['sub_items']) : []
+                'uraian' => $item['uraian'] ?? '',
+                'jumlah' => $jumlah,
+                'satuan' => $item['satuan'] ?? '',
+                'harga_satuan' => $hargaSatuan,
+                'jumlah_biaya' => $jumlah * $hargaSatuan
             ];
         })->toArray();
     }
@@ -193,28 +338,16 @@ class RabController extends Controller
     private function processNonPersonil($items, $jenis)
     {
         return collect($items)->map(function($item) use ($jenis) {
+            $jumlah = isset($item['jumlah']) ? (float)$item['jumlah'] : 0;
+            $hargaSatuan = isset($item['harga_satuan']) ? (float)$item['harga_satuan'] : 0;
+            
             return [
-                'uraian' => $item['uraian'],
-                'jumlah' => (float)$item['jumlah'],
-                'satuan' => $item['satuan'],
-                'harga_satuan' => (float)$item['harga_satuan'],
-                'jumlah_biaya' => (float)$item['jumlah'] * (float)$item['harga_satuan'],
-                'jenis' => $jenis,
-                'sub_items' => isset($item['sub_items']) ? $this->processSubItems($item['sub_items']) : []
-            ];
-        })->toArray();
-    }
-
-    // Method untuk memproses sub items
-    private function processSubItems($subItems)
-    {
-        return collect($subItems)->map(function($subItem) {
-            return [
-                'uraian' => $subItem['uraian'],
-                'jumlah' => (float)$subItem['jumlah'],
-                'satuan' => $subItem['satuan'],
-                'harga_satuan' => (float)$subItem['harga_satuan'],
-                'jumlah_biaya' => (float)$subItem['jumlah_biaya']
+                'uraian' => $item['uraian'] ?? '',
+                'jumlah' => $jumlah,
+                'satuan' => $item['satuan'] ?? '',
+                'harga_satuan' => $hargaSatuan,
+                'jumlah_biaya' => $jumlah * $hargaSatuan,
+                'jenis' => $jenis
             ];
         })->toArray();
     }
@@ -222,7 +355,7 @@ class RabController extends Controller
     public function show(Rab $rab)
     {
         $jumlahAB = $rab->jumlah_biaya_langsung_personal + $rab->jumlah_biaya_langsung_non_personal;
-        $ppn = $jumlahAB * 0.11;
+        $ppn = $rab->ppn ?? 0;
         $total = $jumlahAB + $ppn;
         $terbilangText = $rab->terbilang ?? $this->terbilang($total);
 
@@ -232,7 +365,7 @@ class RabController extends Controller
     public function destroy(Rab $rab)
     {
         $rab->delete();
-        return redirect()->route('rab.index')->with('success', 'RAB berhasil dihapus.');
+        return redirect()->route('rab.indexkontrak')->with('success', 'RAB berhasil dihapus.');
     }
 
     public function downloadExcel(Rab $rab)
@@ -243,7 +376,7 @@ class RabController extends Controller
     public function downloadPdf(Rab $rab)
     {
         $jumlahAB = $rab->jumlah_biaya_langsung_personal + $rab->jumlah_biaya_langsung_non_personal;
-        $ppn = $jumlahAB * 0.11;
+        $ppn = $rab->ppn ?? 0;
         $total = $jumlahAB + $ppn;
 
         $pdf = Pdf::loadView('rab.pdf', [
@@ -262,8 +395,34 @@ class RabController extends Controller
         ]);
 
         return $pdf->setPaper('a4', 'portrait')
-                   ->setOption('isRemoteEnabled', true)
-                   ->download('RAB_' . str_replace(' ', '_', $rab->pekerjaan) . '.pdf');
+                 ->setOption('isRemoteEnabled', true)
+                 ->download('RAB_' . str_replace(' ', '_', $rab->pekerjaan) . '.pdf');
+    }
+
+    public function downloadPdfperencenaan(Rab $rab)
+    {
+        $jumlahAB = $rab->jumlah_biaya_langsung_personal + $rab->jumlah_biaya_langsung_non_personal;
+        $ppn = $rab->ppn ?? 0;
+        $total = $jumlahAB + $ppn;
+
+        $pdf = Pdf::loadView('rab.pdfperencanaan', [
+            'rab' => $rab,
+            'jumlahAB' => $jumlahAB,
+            'ppn' => $ppn,
+            'total' => $total,
+            'terbilang' => $rab->terbilang ?? $this->terbilang($total),
+            'profesionalStaf' => $rab->biaya_langsung_personil_profesional_staf ?? [],
+            'tenagaAhliSub' => $rab->biaya_langsung_personil_tenaga_ahli_sub_profesional ?? [],
+            'tenagaPendukung' => $rab->biaya_langsung_personil_tenaga_pendukung ?? [],
+            'operasionalKantor' => $rab->biaya_langsung_non_personil_biaya_operasional_kantor ?? [],
+            'perjalananDinas' => $rab->biaya_perjalanan_dinas ?? [],
+            'depresiasi' => $rab->depresiasi ?? [],
+            'biayaPelaporan' => $rab->biaya_pelaporan ?? []
+        ]);
+
+        return $pdf->setPaper('a4', 'portrait')
+                 ->setOption('isRemoteEnabled', true)
+                 ->download('RAB_' . str_replace(' ', '_', $rab->pekerjaan) . '.pdf');
     }
 
     public function terbilang($angka)

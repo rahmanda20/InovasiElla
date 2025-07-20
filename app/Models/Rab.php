@@ -20,6 +20,7 @@ class Rab extends Model
 
     protected $fillable = [
         'pekerjaan',
+        'jenis_dokumen',
         'lokasi',
         'masa_pelaksanaan',
         'sumber_dana',
@@ -49,6 +50,8 @@ class Rab extends Model
         'nama_pejabat_penandatangan_kontrak',
         'jabatan_pejabat',
         'nip_pejabat',
-        'terbilang'
+        'terbilang',
+        'file_kontrak_ttd',
+        'file_kontrak_non_ttd'
     ];
 }

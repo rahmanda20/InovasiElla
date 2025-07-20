@@ -179,62 +179,62 @@
             <tr>
                 <td class="text-center bold">A.</td>
                 <td class="bold uppercase">BIAYA LANGSUNG PERSONIL</td>
-                <td class="text-right">{{ $rab->jumlah_biaya_langsung_personal > 0 ? number_format($rab->jumlah_biaya_langsung_personal, 2, ',', '.') : '-' }}</td>
+                <td class="text-right">-</td>
             </tr>
             <tr>
                 <td class="text-center">A.1</td>
                 <td>Professional Staff</td>
-                <td class="text-right">{{ $rab->jumlah_biaya_langsung_personil_profesional_staf > 0 ? number_format($rab->jumlah_biaya_langsung_personil_profesional_staf, 2, ',', '.') : '-' }}</td>
+                <td class="text-right"></td>
             </tr>
             <tr>
                 <td class="text-center">A.2</td>
                 <td>Tenaga Ahli Sub Professional</td>
-                <td class="text-right">{{ $rab->jumlah_biaya_langsung_personil_tenaga_ahli_sub_profesional > 0 ? number_format($rab->jumlah_biaya_langsung_personil_tenaga_ahli_sub_profesional, 2, ',', '.') : '-' }}</td>
+                <td class="text-right"></td>
             </tr>
             <tr>
                 <td class="text-center">A.3</td>
                 <td>Tenaga Pendukung (Supporting Staff)</td>
-                <td class="text-right">{{ $rab->jumlah_biaya_langsung_personil_tenaga_pendukung > 0 ? number_format($rab->jumlah_biaya_langsung_personil_tenaga_pendukung, 2, ',', '.') : '-' }}</td>
+                <td class="text-right"></td>
             </tr>
 
             <!-- Biaya Non Personil -->
             <tr>
                 <td class="text-center bold">B.</td>
                 <td class="bold uppercase">BIAYA LANGSUNG NON PERSONIL</td>
-                <td class="text-right">{{ $rab->jumlah_biaya_langsung_non_personal > 0 ? number_format($rab->jumlah_biaya_langsung_non_personal, 2, ',', '.') : '-' }}</td>
+                <td class="text-right"></td>
             </tr>
             <tr>
                 <td class="text-center">B.1</td>
                 <td>Biaya Operasional Kantor</td>
-                <td class="text-right">{{ $rab->jumlah_biaya_langsung_non_personil_biaya_operasional_kantor > 0 ? number_format($rab->jumlah_biaya_langsung_non_personil_biaya_operasional_kantor, 2, ',', '.') : '-' }}</td>
+                <td class="text-right"></td>
             </tr>
             <tr>
                 <td class="text-center">B.2</td>
                 <td>Biaya Perjalanan Dinas/Perdiem Allowance (Turjangan Harlan) untuk proyek &lt; 3 bulan</td>
-                <td class="text-right">{{ $rab->jumlah_biaya_perjalanan_dinas > 0 ? number_format($rab->jumlah_biaya_perjalanan_dinas, 2, ',', '.') : '-' }}</td>
+                <td class="text-right"></td>
             </tr>
             <tr>
                 <td class="text-center">B.3</td>
                 <td>Depresiasi Perlengkapan Khusus dan Lapangan</td>
-                <td class="text-right">{{ $rab->jumlah_depresiasi > 0 ? number_format($rab->jumlah_depresiasi, 2, ',', '.') : '-' }}</td>
+                <td class="text-right"></td>
             </tr>
             <tr>
                 <td class="text-center">B.4</td>
                 <td>Biaya Pelaporan</td>
-                <td class="text-right">{{ $rab->jumlah_biaya_pelaporan > 0 ? number_format($rab->jumlah_biaya_pelaporan, 2, ',', '.') : '-' }}</td>
+                <td class="text-right"></td>
             </tr>
 
             <!-- Total -->
           <!-- Di dalam tabel rekapitulasi -->
 <tr class="bold">
     <td colspan="2" class="text-right">JUMLAH (A + B)</td>
-    <td class="text-right">{{ $jumlahAB > 0 ? number_format($jumlahAB, 2, ',', '.') : '-' }}</td>
+    <td class="text-right"></td>
 </tr>
 <!-- Baris PPN - hanya ditampilkan jika ada nilai PPN -->
 @if($ppn > 0)
 <tr class="bold">
     <td colspan="2" class="text-right">PPN 11%</td>
-    <td class="text-right">{{ number_format($ppn, 2, ',', '.') }}</td>
+    <td class="text-right"></td>
 </tr>
 @else
 <tr class="bold">
@@ -244,10 +244,10 @@
 @endif
 <tr class="bold">
     <td colspan="2" class="text-right">TOTAL</td>
-    <td class="text-right">{{ $total > 0 ? number_format($total, 2, ',', '.') : '-' }}</td>
+    <td class="text-right"></td>
 </tr>
             <tr class="terbilang-row">
-                <td colspan="3">Terbilang: <strong>{{ $total > 0 ? ucfirst($terbilang) . ' Rupiah' : 'Nol Rupiah' }}</strong></td>
+                <td colspan="3">Terbilang: <strong></strong></td>
             </tr>
         </tbody>
     </table>
@@ -258,22 +258,22 @@
             <td>
                 Untuk dan atas nama<br>
                 <strong class="uppercase">Penyedia</strong><br>
-                <strong>{{ $rab->nama_perusahaan_penyedia }}</strong><br><br>
+                <strong></strong><br><br>
                 <div class="ttd-space"></div>
-                <strong class="underline">{{ $rab->nama_penyedia }}</strong><br>
-                {{ $rab->jabatan_penyedia }}
+                <strong class="underline"></strong><br>
+               
             </td>
             <td style="text-align: right">
-                Jayapura, {{ \Carbon\Carbon::parse($rab->created_at)->translatedFormat('d F Y') }}<br>
+                Jayapura, <br>
                 Untuk dan atas nama<br>
                 Pemerintah Provinsi Papua<br>
                 <strong class="uppercase">Pejabat Penandatangan Kontrak</strong><br>
                 Dinas Pekerjaan Umum, Penataan Ruang,<br>
                 Perumahan dan Kawasan Permukiman<br><br>
                 <div class="ttd-space"></div>
-                <strong class="underline">{{ $rab->nama_pejabat_penandatangan_kontrak }}</strong><br>
-                {{ $rab->jabatan_pejabat }}<br>
-                NIP. {{ $rab->nip_pejabat }}
+                <strong class="underline"></strong><br>
+               <br>
+                NIP. 
             </td>
         </tr>
     </table>
@@ -324,13 +324,13 @@
                 <td>{{ $item['uraian'] }}</td>
                 <td class="text-center">{{ number_format($item['volume'], 1, ',', '.') }}</td>
                 <td class="text-center">{{ $item['satuan'] }}</td>
-                <td class="text-right">{{ $item['harga_satuan'] > 0 ? number_format($item['harga_satuan'], 2, ',', '.') : '-' }}</td>
-                <td class="text-right">{{ $item['jumlah_harga'] > 0 ? number_format($item['jumlah_harga'], 2, ',', '.') : '-' }}</td>
+                <td class="text-right"></td>
+                <td class="text-right"></td>
             </tr>
             @endforeach
             <tr class="bold">
                 <td colspan="5" class="text-right">Jumlah A.1.</td>
-                <td class="text-right">{{ $rab->jumlah_biaya_langsung_personil_profesional_staf > 0 ? number_format($rab->jumlah_biaya_langsung_personil_profesional_staf, 2, ',', '.') : '-' }}</td>
+                <td class="text-right"></td>
             </tr>
         </tbody>
     </table>
@@ -355,13 +355,13 @@
                 <td>{{ $item['personil'] }}</td>
                 <td class="text-center">{{ number_format($item['jumlah'], 1, ',', '.') }}</td>
                 <td class="text-center">{{ $item['satuan'] }}</td>
-                <td class="text-right">{{ $item['harga_satuan'] > 0 ? number_format($item['harga_satuan'], 2, ',', '.') : '-' }}</td>
-                <td class="text-right">{{ $item['jumlah_biaya'] > 0 ? number_format($item['jumlah_biaya'], 2, ',', '.') : '-' }}</td>
+                <td class="text-right"></td>
+                <td class="text-right"></td>
             </tr>
             @endforeach
             <tr class="bold">
                 <td colspan="5" class="text-right">Jumlah A.2.</td>
-                <td class="text-right">{{ $rab->jumlah_biaya_langsung_personil_tenaga_ahli_sub_profesional > 0 ? number_format($rab->jumlah_biaya_langsung_personil_tenaga_ahli_sub_profesional, 2, ',', '.') : '-' }}</td>
+                <td class="text-right"></td>
             </tr>
         </tbody>
     </table>
@@ -386,13 +386,13 @@
                 <td>{{ $item['personil'] }}</td>
                 <td class="text-center">{{ number_format($item['jumlah'], 1, ',', '.') }}</td>
                 <td class="text-center">{{ $item['satuan'] }}</td>
-                <td class="text-right">{{ $item['harga_satuan'] > 0 ? number_format($item['harga_satuan'], 2, ',', '.') : '-' }}</td>
-                <td class="text-right">{{ $item['jumlah_biaya'] > 0 ? number_format($item['jumlah_biaya'], 2, ',', '.') : '-' }}</td>
+                <td class="text-right"></td>
+                <td class="text-right"></td>
             </tr>
             @endforeach
             <tr class="bold">
                 <td colspan="5" class="text-right">Jumlah A.3.</td>
-                <td class="text-right">{{ $rab->jumlah_biaya_langsung_personil_tenaga_pendukung > 0 ? number_format($rab->jumlah_biaya_langsung_personil_tenaga_pendukung, 2, ',', '.') : '-' }}</td>
+                <td class="text-right"></td>
             </tr>
         </tbody>
     </table>
@@ -420,13 +420,13 @@
                 <td>{{ $item['uraian'] }}</td>
                 <td class="text-center">{{ number_format($item['jumlah'], 1, ',', '.') }}</td>
                 <td class="text-center">{{ $item['satuan'] }}</td>
-                <td class="text-right">{{ $item['harga_satuan'] > 0 ? number_format($item['harga_satuan'], 2, ',', '.') : '-' }}</td>
-                <td class="text-right">{{ $item['jumlah_biaya'] > 0 ? number_format($item['jumlah_biaya'], 2, ',', '.') : '-' }}</td>
+                <td class="text-right"></td>
+                <td class="text-right"></td>
             </tr>
             @endforeach
             <tr class="bold">
                 <td colspan="5" class="text-right">Jumlah B.1.</td>
-                <td class="text-right">{{ $rab->jumlah_biaya_langsung_non_personil_biaya_operasional_kantor > 0 ? number_format($rab->jumlah_biaya_langsung_non_personil_biaya_operasional_kantor, 2, ',', '.') : '-' }}</td>
+                <td class="text-right"></td>
             </tr>
         </tbody>
     </table>
@@ -451,13 +451,13 @@
                 <td>{{ $item['uraian'] }}</td>
                 <td class="text-center">{{ number_format($item['jumlah'], 1, ',', '.') }}</td>
                 <td class="text-center">{{ $item['satuan'] }}</td>
-                <td class="text-right">{{ $item['harga_satuan'] > 0 ? number_format($item['harga_satuan'], 2, ',', '.') : '-' }}</td>
-                <td class="text-right">{{ $item['jumlah_biaya'] > 0 ? number_format($item['jumlah_biaya'], 2, ',', '.') : '-' }}</td>
+                <td class="text-right"></td>
+                <td class="text-right"></td>
             </tr>
             @endforeach
             <tr class="bold">
                 <td colspan="5" class="text-right">Jumlah B.2.</td>
-                <td class="text-right">{{ $rab->jumlah_biaya_perjalanan_dinas > 0 ? number_format($rab->jumlah_biaya_perjalanan_dinas, 2, ',', '.') : '-' }}</td>
+                <td class="text-right"></td>
             </tr>
         </tbody>
     </table>
@@ -482,13 +482,13 @@
                 <td>{{ $item['uraian'] }}</td>
                 <td class="text-center">{{ number_format($item['jumlah'], 1, ',', '.') }}</td>
                 <td class="text-center">{{ $item['satuan'] }}</td>
-                <td class="text-right">{{ $item['harga_satuan'] > 0 ? number_format($item['harga_satuan'], 2, ',', '.') : '-' }}</td>
-                <td class="text-right">{{ $item['jumlah_biaya'] > 0 ? number_format($item['jumlah_biaya'], 2, ',', '.') : '-' }}</td>
+                <td class="text-right"></td>
+                <td class="text-right"></td>
             </tr>
             @endforeach
             <tr class="bold">
                 <td colspan="5" class="text-right">Jumlah B.3.</td>
-                <td class="text-right">{{ $rab->jumlah_depresiasi > 0 ? number_format($rab->jumlah_depresiasi, 2, ',', '.') : '-' }}</td>
+                <td class="text-right"></td>
             </tr>
         </tbody>
     </table>
@@ -513,13 +513,13 @@
                 <td>{{ $item['uraian'] }}</td>
                 <td class="text-center">{{ number_format($item['jumlah'], 1, ',', '.') }}</td>
                 <td class="text-center">{{ $item['satuan'] }}</td>
-                <td class="text-right">{{ $item['harga_satuan'] > 0 ? number_format($item['harga_satuan'], 2, ',', '.') : '-' }}</td>
-                <td class="text-right">{{ $item['jumlah_biaya'] > 0 ? number_format($item['jumlah_biaya'], 2, ',', '.') : '-' }}</td>
+                <td class="text-right"></td>
+                <td class="text-right"></td>
             </tr>
             @endforeach
             <tr class="bold">
                 <td colspan="5" class="text-right">Jumlah B.4.</td>
-                <td class="text-right">{{ $rab->jumlah_biaya_pelaporan > 0 ? number_format($rab->jumlah_biaya_pelaporan, 2, ',', '.') : '-' }}</td>
+                <td class="text-right"></td>
             </tr>
         </tbody>
     </table>
@@ -530,22 +530,22 @@
             <td>
                 Untuk dan atas nama<br>
                 <strong class="uppercase">Penyedia</strong><br>
-                <strong>{{ $rab->nama_perusahaan_penyedia }}</strong><br><br>
+                <strong></strong><br><br>
                 <div class="ttd-space"></div>
                 <strong class="underline">{{ $rab->nama_penyedia }}</strong><br>
                 {{ $rab->jabatan_penyedia }}
             </td>
             <td style="text-align: right">
-                Jayapura, {{ \Carbon\Carbon::parse($rab->created_at)->translatedFormat('d F Y') }}<br>
+                Jayapura, <br>
                 Untuk dan atas nama<br>
                 Pemerintah Provinsi Papua<br>
                 <strong class="uppercase">Pejabat Penandatangan Kontrak</strong><br>
                 Dinas Pekerjaan Umum, Penataan Ruang,<br>
                 Perumahan dan Kawasan Permukiman<br><br>
                 <div class="ttd-space"></div>
-                <strong class="underline">{{ $rab->nama_pejabat_penandatangan_kontrak }}</strong><br>
-                {{ $rab->jabatan_pejabat }}<br>
-                NIP. {{ $rab->nip_pejabat }}
+                <strong class="underline"></strong><br>
+               <br>
+                NIP. 
             </td>
         </tr>
     </table>
