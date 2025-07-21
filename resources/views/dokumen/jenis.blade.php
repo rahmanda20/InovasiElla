@@ -1,33 +1,116 @@
 @extends('layouts.app')
 
+@section('styles')
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet" />
+<style>
+    .section-title {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 1rem;
+    }
+
+    .dashboard-btn,
+    .knowledge-btn {
+        padding: 0.75rem 1.5rem;
+        font-size: 1rem;
+        font-weight: bold;
+        border: none;
+        border-radius: 0.375rem;
+        background-color: #007bff;
+        color: white;
+        transition: all 0.3s ease;
+    }
+
+    .dashboard-btn:hover,
+    .knowledge-btn:hover {
+        background-color: #0056b3;
+        transform: translateY(-3px);
+    }
+
+    .select2-container--default .select2-selection--single {
+        height: 42px;
+        padding: 6px 12px;
+        border: 1px solid #ced4da;
+        border-radius: 0.25rem;
+        transition: all 0.3s ease;
+    }
+
+    .select2-selection__rendered {
+        color: #495057;
+    }
+
+    .select2-container--default .select2-selection--single:focus,
+    .select2-container--default .select2-selection--single:hover {
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, .25);
+        border-color: #80bdff;
+    }
+
+    .card {
+        min-height: 160px;
+        transition: all 0.3s ease;
+        border-radius: 0.75rem;
+        overflow: hidden;
+        position: relative;
+        z-index: 1;
+    }
+
+    .card:hover {
+        transform: scale(1.03);
+        z-index: 10;
+        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    #btnDownloadZip {
+        margin-top: 1rem;
+    }
+
+    @media (max-width: 768px) {
+        .section-title {
+            font-size: 1.25rem;
+        }
+
+        .dashboard-btn,
+        .knowledge-btn {
+            font-size: 0.9rem;
+            padding: 0.5rem 1rem;
+        }
+
+        .card-body {
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .card-body .w-75,
+        .card-body .w-25 {
+            width: 100% !important;
+        }
+
+        #btnDownloadZip {
+            width: 100%;
+        }
+    }
+</style>
+@endsection
+
 @section('content')
-<div class="container">
+<div class="container animate__animated animate__fadeIn pt-5">
+    {{-- Form Judul --}}
+    <div class="card shadow p-4 mb-4">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-3 gap-2">
+            <h4 class="section-title mb-0">Kelola Judul Dokumen</h4>
+            <button class="btn btn-primary animate__animated animate__pulse" data-bs-toggle="modal" data-bs-target="#modalTambahJudul">
+                + Tambah Judul
+            </button>
+        </div>
 
-@if(session('error'))
-    <div class="alert alert-danger">{{ session('error') }}</div>
-@endif
-@if(session('success'))
-    <div class="alert alert-success">{{ session('success') }}</div>
-@endif
-
-
-
-    <!-- Tombol Tambah Judul -->
-    <div class="col-12 mb-3">
-        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalTambahJudul">
-            + Tambah
-        </button>
-    </div>
-
-    <!-- Form Download ZIP -->
-    <div class="col-12 mb-3">
         <form id="formDownloadZip" action="{{ route('dokumen.download-zip') }}" method="POST">
             @csrf
 
-            <!-- Pilih Judul Surat -->
             <div class="mb-3">
-                <label for="judulSelect">Pilih Judul Surat:</label>
-                <select id="judulSelect" name="judul_surat" class="form-select" required>
+                <label for="judulSelect" class="form-label">Pilih Judul Surat:</label>
+                <select id="judulSelect" name="judul_surat" class="form-select select2" required>
                     <option value="">-- Pilih Judul Surat --</option>
                     @foreach($surats->pluck('judul_surat')->unique() as $judul)
                         <option value="{{ $judul }}">{{ $judul }}</option>
@@ -35,12 +118,10 @@
                 </select>
             </div>
 
-            <!-- Jenis Dokumen Hidden -->
             <input type="hidden" name="jenis_dokumen" value="{{ $jenis }}">
 
-            <!-- Container Checkbox Jenis Surat -->
             <div id="jenisSuratCheckboxes" class="mb-3" style="display: none;">
-                <label for="jenis_surat">Pilih dokumen untuk diunduh (ZIP PDF):</label><br>
+                <label for="jenis_surat" class="form-label">Pilih dokumen untuk diunduh (ZIP PDF):</label><br>
                 <div class="form-check">
                     <input class="form-check-input" type="checkbox" id="checkAllJenisSurat">
                     <label class="form-check-label fw-bold" for="checkAllJenisSurat">
@@ -50,14 +131,13 @@
                 <div id="checkboxList" class="mt-2"></div>
             </div>
 
-            <!-- Tombol Download -->
             <button type="submit" class="btn btn-success" style="display: none;" id="btnDownloadZip">
-                Download ZIP PDF
+                <i class="fas fa-file-archive"></i> Download ZIP PDF
             </button>
         </form>
     </div>
 
-    <!-- Modal Tambah Judul -->
+    {{-- Modal Tambah Judul --}}
     <div class="modal fade" id="modalTambahJudul" tabindex="-1" aria-labelledby="modalTambahJudulLabel" aria-hidden="true">
         <div class="modal-dialog">
             <form action="{{ route('surat.mass-create') }}" method="POST">
@@ -82,145 +162,132 @@
         </div>
     </div>
 
-    <!-- Section Daftar Dokumen -->
-    <div class="row">
-        <div class="col-12">
-            <div class="box no-shadow mb-0 bg-transparent">
-                <div class="box-header no-border px-0">
-                    <h4 class="section-title">
-                        Perencanaan - Dokumen Kontrak ({{ strtoupper(str_replace('_', ' ', $jenis)) }})
-                    </h4>
-                </div>
+    {{-- Section Daftar Dokumen --}}
+    <div class="card shadow p-4 mt-4">
+        <div class="row">
+            <div class="col-12">
+                <h4 class="section-title">Perencanaan - Dokumen Kontrak ({{ strtoupper(str_replace('_', ' ', $jenis)) }})</h4>
             </div>
-        </div>
 
-        <hr />
-
-        {{-- Rancangan Kontrak --}}
-        @if(isset($suratOptions) && count($suratOptions) > 0)
-        <div class="col-12">
-            <button class="dashboard-btn">Rancangan Kontrak</button>
-        </div>
-        @foreach($suratOptions as $index => $option)
-        <div class="col-xl-4 col-md-6 col-12 mb-4">
-            <a href="{{ $option['slug'] === 'hps'
-                ? route('rab.index', ['jenis_dokumen' => $jenis])
-                : route('dokumen.list', ['jenis_dokumen' => $jenis, 'jenis_surat' => $option['slug']]) }}">
-                <div class="box bg-white pull-up animate__animated {{ $index % 2 == 0 ? 'animate__lightSpeedInLeft' : 'animate__lightSpeedInRight' }}"
-                     style="border-bottom: 5px solid #3AA4F2;">
-                    <div class="box-body d-flex align-items-center">
-                        <div style="flex: 0 0 60%; padding-right: 15px;">
-                            <h6 class="mt-25 mb-5">{{ $option['nama'] }}</h6>
-                            <p class="text-fade mb-0 fs-12">{{ $option['deskripsi'] }}</p>
-                        </div>
-                        <div style="flex: 0 0 40%; padding-left: 15px;">
-                            <img src="{{ asset('images/svg-icon/color-svg/' . $option['ikon']) }}"
-                                 alt="Icon" style="width: 100%; height: 100px; object-fit: cover;">
-                        </div>
-                    </div>
+            @if(isset($suratOptions) && count($suratOptions) > 0)
+                <div class="col-12">
+                    <button class="dashboard-btn mb-3">Rancangan Kontrak</button>
                 </div>
-            </a>
-        </div>
-        @endforeach
-        @endif
-
-        {{-- Dokumen Kontrak Lainnya --}}
-        @if(isset($dokumenLainnyaOptions) && count($dokumenLainnyaOptions) > 0)
-        <div class="col-12 mt-4">
-            <button class="knowledge-btn">Dokumen Kontrak Lainnya</button>
-        </div>
-        @foreach($dokumenLainnyaOptions as $index => $option)
-        <div class="col-xl-4 col-md-6 col-12 mb-4">
-            <a href="{{ route('dokumen.list', ['jenis_dokumen' => $jenis, 'jenis_surat' => $option['slug']]) }}">
-                <div class="box bg-white pull-up animate__animated {{ $index % 2 == 0 ? 'animate__lightSpeedInLeft' : 'animate__lightSpeedInRight' }}"
-                     style="border-bottom: 5px solid #3AA4F2;">
-                    <div class="box-body d-flex align-items-center">
-                        <div style="flex: 0 0 60%; padding-right: 15px;">
-                            <h6 class="mt-25 mb-5">{{ $option['nama'] }}</h6>
-                            <p class="text-fade mb-0 fs-12">{{ $option['deskripsi'] }}</p>
+                @foreach($suratOptions as $index => $option)
+                <div class="col-xl-4 col-md-6 col-12 mb-4">
+                    <a href="{{ $option['slug'] === 'hps'
+                        ? route('rab.index', ['jenis_dokumen' => $jenis])
+                        : route('dokumen.list', ['jenis_dokumen' => $jenis, 'jenis_surat' => $option['slug']]) }}">
+                        <div class="card shadow animate__animated animate__fadeInUp">
+                            <div class="card-body d-flex align-items-center">
+                                <div class="w-75">
+                                    <h6 class="fw-bold">{{ $option['nama'] }}</h6>
+                                    <p class="text-muted small">{{ $option['deskripsi'] }}</p>
+                                </div>
+                                <div class="w-25 text-end">
+                                    <img src="{{ asset('images/svg-icon/color-svg/' . $option['ikon']) }}" alt="Icon" class="img-fluid">
+                                </div>
+                            </div>
                         </div>
-                        <div style="flex: 0 0 40%; padding-left: 15px;">
-                            <img src="{{ asset('images/svg-icon/color-svg/' . $option['ikon']) }}"
-                                 alt="Icon" style="width: 100%; height: 100px; object-fit: cover;">
-                        </div>
-                    </div>
+                    </a>
                 </div>
-            </a>
+                @endforeach
+            @endif
+
+            @if(isset($dokumenLainnyaOptions) && count($dokumenLainnyaOptions) > 0)
+                <div class="col-12 mt-4">
+                    <button class="knowledge-btn mb-3">Dokumen Kontrak Lainnya</button>
+                </div>
+                @foreach($dokumenLainnyaOptions as $index => $option)
+                <div class="col-xl-4 col-md-6 col-12 mb-4">
+                    <a href="{{ route('dokumen.list', ['jenis_dokumen' => $jenis, 'jenis_surat' => $option['slug']]) }}">
+                        <div class="card shadow animate__animated animate__fadeInUp">
+                            <div class="card-body d-flex align-items-center">
+                                <div class="w-75">
+                                    <h6 class="fw-bold">{{ $option['nama'] }}</h6>
+                                    <p class="text-muted small">{{ $option['deskripsi'] }}</p>
+                                </div>
+                                <div class="w-25 text-end">
+                                    <img src="{{ asset('images/svg-icon/color-svg/' . $option['ikon']) }}" alt="Icon" class="img-fluid">
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                @endforeach
+            @endif
         </div>
-        @endforeach
-        @endif
     </div>
 </div>
+@endsection
 
-
+@section('scripts')
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const checkboxList = document.getElementById('checkboxList');
-        const checkAll = document.getElementById('checkAllJenisSurat');
-        const jenisSuratContainer = document.getElementById('jenisSuratCheckboxes');
-        const btnDownloadZip = document.getElementById('btnDownloadZip');
-        const judulSelect = document.getElementById('judulSelect');
+    $(document).ready(function () {
+        $('#judulSelect').select2({
+            placeholder: 'Pilih Judul Surat',
+            allowClear: true,
+            width: '100%',
+        }).on('select2:open', function () {
+            $('.select2-dropdown').addClass('animate__animated animate__fadeInDown');
+        });
+
+        @if(session('success'))
+            Swal.fire({ icon: 'success', title: 'Berhasil', html: `{!! session('success') !!}`, confirmButtonColor: '#3085d6' });
+        @endif
+        @if(session('error'))
+            Swal.fire({ icon: 'error', title: 'Gagal', html: `{!! session('error') !!}`, confirmButtonColor: '#d33' });
+        @endif
+
+        const checkboxList = $('#checkboxList');
+        const checkAll = $('#checkAllJenisSurat');
+        const jenisSuratContainer = $('#jenisSuratCheckboxes');
+        const btnDownloadZip = $('#btnDownloadZip');
         const jenisDokumen = "{{ $jenis }}";
 
-        judulSelect.addEventListener('change', function () {
-            const judul = this.value;
-
-            // Sembunyikan komponen jika belum ada judul
+        $('#judulSelect').on('change', function () {
+            const judul = $(this).val();
             if (!judul) {
-                jenisSuratContainer.style.display = 'none';
-                btnDownloadZip.style.display = 'none';
-                checkboxList.innerHTML = '';
+                jenisSuratContainer.hide();
+                btnDownloadZip.hide();
+                checkboxList.empty();
                 return;
             }
-
-            // Fetch data
             fetch(`/get-jenis-surat?judul=${encodeURIComponent(judul)}&jenis_dokumen=${encodeURIComponent(jenisDokumen)}`)
                 .then(response => response.json())
                 .then(result => {
+                    checkboxList.empty();
                     if (result.status !== 'success' || !Array.isArray(result.data)) {
-                        checkboxList.innerHTML = `<div class="text-muted fst-italic">Data tidak ditemukan.</div>`;
-                        jenisSuratContainer.style.display = 'none';
-                        btnDownloadZip.style.display = 'none';
+                        checkboxList.html(`<div class="text-muted fst-italic">Data tidak ditemukan.</div>`);
+                        jenisSuratContainer.hide();
+                        btnDownloadZip.hide();
                         return;
                     }
-
-                    // Tampilkan checkbox
-                    checkboxList.innerHTML = '';
                     result.data.forEach(surat => {
-                        checkboxList.innerHTML += `
+                        checkboxList.append(`
                             <div class="form-check form-check-inline">
-                                <input class="form-check-input item-checkbox" type="checkbox"
-                                    name="jenis_surat[]" value="${surat.jenis_surat}"
-                                    id="check_${surat.id}">
-                                <label class="form-check-label" for="check_${surat.id}">
-                                    ${surat.jenis_surat.toUpperCase()}
-                                </label>
+                                <input class="form-check-input item-checkbox" type="checkbox" name="jenis_surat[]" value="${surat.jenis_surat}" id="check_${surat.id}">
+                                <label class="form-check-label" for="check_${surat.id}">${surat.jenis_surat.toUpperCase()}</label>
                             </div>
-                        `;
+                        `);
                     });
-
-                    jenisSuratContainer.style.display = 'block';
-                    btnDownloadZip.style.display = 'inline-block';
-
-                    // Reset checkAll
-                    checkAll.checked = false;
+                    jenisSuratContainer.show();
+                    btnDownloadZip.show();
+                    checkAll.prop('checked', false);
                 })
                 .catch(error => {
-                    console.error('Gagal memuat data jenis surat:', error);
-                    checkboxList.innerHTML = `<div class="text-danger">Gagal memuat data.</div>`;
-                    jenisSuratContainer.style.display = 'none';
-                    btnDownloadZip.style.display = 'none';
+                    checkboxList.html(`<div class="text-danger">Gagal memuat data.</div>`);
+                    jenisSuratContainer.hide();
+                    btnDownloadZip.hide();
                 });
         });
 
-        // Tombol "Check All"
-        checkAll.addEventListener('change', function () {
-            const allItems = document.querySelectorAll('.item-checkbox');
-            allItems.forEach(checkbox => {
-                checkbox.checked = checkAll.checked;
-            });
+        checkAll.on('change', function () {
+            $('.item-checkbox').prop('checked', $(this).is(':checked'));
         });
     });
 </script>
-
 @endsection

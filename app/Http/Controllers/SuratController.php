@@ -199,7 +199,7 @@ public function store(Request $request)
 
 
 
-    public function massCreate(Request $request)
+public function massCreate(Request $request)
 {
     $request->validate([
         'judul' => 'required|string|max:255',
@@ -208,56 +208,71 @@ public function store(Request $request)
     $judul = $request->judul;
     $jenisDokumen = 'pengadaan_langsung';
 
-    // Semua jenis surat dari blade
     $suratOptions = [
         'sppbj', 'spk', 'spmk', 'bapl', 'hps', 'timeschedule',
         'kak', 'sskk', 'ssuk', 'uraian'
     ];
 
     $created = [];
-    $skipped = [];
+    $skippedNoTemplate = [];
+    $skippedAlreadyExists = [];
 
     foreach ($suratOptions as $jenisSurat) {
-        // Cek apakah sudah ada surat ini sebelumnya
+        $template = TemplateSurat::where('jenis_surat', $jenisSurat)
+            ->where('is_active', true)
+            ->where('file_path', 'like', '%.xlsx')
+            ->first();
+
+        if (!$template) {
+            $skippedNoTemplate[] = strtoupper($jenisSurat);
+            continue;
+        }
+
         $exists = Surat::where('judul_surat', $judul)
             ->where('jenis_dokumen', $jenisDokumen)
             ->where('jenis_surat', $jenisSurat)
             ->exists();
 
         if ($exists) {
-            $skipped[] = $jenisSurat;
+            $skippedAlreadyExists[] = strtoupper($jenisSurat);
             continue;
         }
 
-        // Simpan surat
         $surat = Surat::create([
             'judul_surat' => $judul,
             'jenis_dokumen' => $jenisDokumen,
             'jenis_surat' => $jenisSurat,
         ]);
 
-        $created[] = $jenisSurat;
-
-        // (Opsional) Generate file Excel jika ada template aktif
         try {
-            $template = TemplateSurat::where('jenis_surat', $jenisSurat)
-                ->where('is_active', true)
-                ->where('file_path', 'like', '%.xlsx')
-                ->first();
-
-            if ($template) {
-                $this->generateExcelFromTemplate($surat, $template);
-            }
+            $this->generateExcelFromTemplate($surat, $template);
+            $created[] = strtoupper($jenisSurat);
         } catch (\Exception $e) {
-            $skipped[] = $jenisSurat . ' (gagal generate)';
+            // gagal generate, abaikan atau bisa dicatat jika perlu
         }
     }
 
-    return redirect()->back()->with([
-        'success' => count($created) . ' surat berhasil ditambahkan.',
-        'warning' => count($skipped) > 0 ? 'Beberapa dilewati: ' . implode(', ', $skipped) : null,
-    ]);
+    // Compose success message
+    $successMessage = '';
+    if (count($created) > 0) {
+        $successMessage .= count($created) . ' template berhasil dibuat:<br><b>' . implode(', ', $created) . '</b><br><br>';
+    }
+    if (count($skippedNoTemplate) > 0) {
+        $successMessage .= 'Template belum aktif untuk:<br><b>' . implode(', ', $skippedNoTemplate) . '</b>';
+    }
+
+    if (!empty($successMessage)) {
+        session()->flash('success', $successMessage);
+    }
+
+    // Compose error message (duplikat)
+    if (count($skippedAlreadyExists) > 0) {
+        session()->flash('error', 'Template sudah pernah dibuat sebelumnya:<br><b>' . implode(', ', $skippedAlreadyExists) . '</b>');
+    }
+
+    return redirect()->back();
 }
+
 
 
 
@@ -280,24 +295,18 @@ public function downloadZip(Request $request)
         if ($surat && $surat->file_excel && Storage::disk('public')->exists($surat->file_excel)) {
             $fullPath = Storage::disk('public')->path($surat->file_excel);
 
-            // Format Nama File ZIP: JudulSurat - JenisSurat - JenisDokumen (huruf awal kapital)
-            $judulSurat   = ucwords(strtolower($request->judul_surat));
-            $jenisSurat   = ucwords(strtolower($jenis));
-            $jenisDokumen = ucwords(strtolower($request->jenis_dokumen));
-
-            $namaFile = "{$judulSurat} - {$jenisSurat} - {$jenisDokumen}";
-            $extension = pathinfo($fullPath, PATHINFO_EXTENSION);
-            $finalName = $namaFile . '.' . $extension;
+            // Buat nama baru berdasarkan format
+            $newFileName = $request->judul_surat . '_' . $request->jenis_dokumen . '_' . $jenis . '.' . pathinfo($fullPath, PATHINFO_EXTENSION);
 
             $files[] = [
                 'path' => $fullPath,
-                'name' => $finalName,
+                'name' => $newFileName,
             ];
         }
     }
 
     if (empty($files)) {
-        return response()->json(['message' => 'Tidak ada file ditemukan yang valid.'], 404);
+        return back()->with('error', 'Tidak ada file yang ditemukan.');
     }
 
     $tempDir = storage_path("app/temp");
@@ -305,8 +314,7 @@ public function downloadZip(Request $request)
         mkdir($tempDir, 0755, true);
     }
 
-    // Nama file ZIP disimpan dengan format snake-case
-    $zipFileName = Str::slug($request->judul_surat . '_' . $request->jenis_dokumen, '_') . '.zip';
+    $zipFileName = $request->judul_surat . '_' . $request->jenis_dokumen . '.zip';
     $zipFilePath = $tempDir . '/' . $zipFileName;
 
     $zip = new \ZipArchive;
@@ -317,12 +325,11 @@ public function downloadZip(Request $request)
         }
         $zip->close();
     } else {
-        return response()->json(['message' => 'Gagal membuat file ZIP.'], 500);
+        return back()->with('error', 'Gagal membuat file ZIP.');
     }
 
     return response()->download($zipFilePath, $zipFileName)->deleteFileAfterSend(true);
 }
-
 
 
 
