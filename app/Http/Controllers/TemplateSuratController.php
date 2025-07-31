@@ -6,21 +6,64 @@ use Illuminate\Http\Request;
 use App\Models\TemplateSurat;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Response;
+use Illuminate\Support\Facades\Auth;
+
+
 
 class TemplateSuratController extends Controller
 {
     protected $cards = [
-        'sppbj' => ['label' => 'Surat Penunjukan Penyedia Barang Jasa (SPPBJ)', 'icon' => 'Pipe9.svg'],
-        'spk'   => ['label' => 'Surat Perjanjian Kerja (SPK)/ Surat Perjanjian (SP)', 'icon' => 'Pipe10.svg'],
-        'spmk'  => ['label' => 'Surat Perintah Mulai Kerja (SPMK)', 'icon' => 'Pipe11.svg'],
-        'bapl'  => ['label' => 'Berita Acara Penyerahan Lapangan (BAPL)', 'icon' => 'Pipe12.svg'],
-        'hps'   => ['label' => 'Harga Perkiraan Sendiri (HPS)', 'icon' => 'Pipe13.svg'],
-        'time'  => ['label' => 'Rencana Time Schedule', 'icon' => 'Pipe13.svg'],
-        'kak'   => ['label' => 'Kerangka Acuan Kerja (KAK)/Term Of Reference (TOR)', 'icon' => 'Pipe18.svg'],
-        'sskk'  => ['label' => 'Syarat-Syarat Khusus Kontrak (SSKK)', 'icon' => 'Pipe20.svg'],
-        'ssuk'  => ['label' => 'Syarat-Syarat Umum Kontrak (SSUK)', 'icon' => 'Pipe19.svg'],
-        'uraian'=> ['label' => 'Uraian Singkat Pekerjaan', 'icon' => 'Pipe40.svg'],
-    ];
+    'sppbj' => [
+        'label' => 'Surat Penunjukan Penyedia Barang Jasa (SPPBJ)',
+        'icon' => 'Pipe9.svg',
+        'desc' => 'Dokumen penunjukan penyedia barang/jasa.',
+    ],
+    'spk' => [
+        'label' => 'Surat Perjanjian Kerja (SPK)/Surat Perjanjian (SP)',
+        'icon' => 'Pipe10.svg',
+        'desc' => 'Perjanjian kerja antara pihak terkait.',
+    ],
+    'spmk' => [
+        'label' => 'Surat Perintah Mulai Kerja (SPMK)',
+        'icon' => 'Pipe11.svg',
+        'desc' => 'Perintah resmi untuk memulai pekerjaan.',
+    ],
+    'bapl' => [
+        'label' => 'Berita Acara Penyerahan Lapangan (BAPL)',
+        'icon' => 'Pipe12.svg',
+        'desc' => 'Dokumen serah terima lapangan kerja.',
+    ],
+    'hps' => [
+        'label' => 'Harga Perkiraan Sendiri (HPS)',
+        'icon' => 'Pipe13.svg',
+        'desc' => 'Perkiraan harga dari penyelenggara.',
+    ],
+    'time' => [
+        'label' => 'Rencana Time Schedule',
+        'icon' => 'Pipe13.svg',
+        'desc' => 'Jadwal pelaksanaan pekerjaan.',
+    ],
+    'kak' => [
+        'label' => 'Kerangka Acuan Kerja (KAK)/Term Of Reference (TOR)',
+        'icon' => 'Pipe18.svg',
+        'desc' => 'Gambaran umum ruang lingkup kerja.',
+    ],
+    'sskk' => [
+        'label' => 'Syarat-Syarat Khusus Kontrak (SSKK)',
+        'icon' => 'Pipe20.svg',
+        'desc' => 'Ketentuan khusus dalam kontrak.',
+    ],
+    'ssuk' => [
+        'label' => 'Syarat-Syarat Umum Kontrak (SSUK)',
+        'icon' => 'Pipe19.svg',
+        'desc' => 'Ketentuan umum dalam kontrak.',
+    ],
+    'uraian' => [
+        'label' => 'Uraian Singkat Pekerjaan',
+        'icon' => 'Pipe40.svg',
+        'desc' => 'Ringkasan pekerjaan yang dilakukan.',
+    ],
+];
 
     /**
      * Halaman dashboard semua jenis template
@@ -33,22 +76,25 @@ class TemplateSuratController extends Controller
     /**
      * Menampilkan daftar template berdasarkan jenis
      */
-    public function index($jenis)
-    {
-        if (!array_key_exists($jenis, $this->cards)) {
-            abort(404, 'Jenis template tidak ditemukan.');
-        }
-
-        $templates = TemplateSurat::where('jenis_surat', $jenis)
-            ->orderByDesc('created_at')
-            ->get();
-
-        return view('template.index', [
-            'jenis' => $jenis,
-            'label' => $this->cards[$jenis]['label'],
-            'templates' => $templates
-        ]);
+   public function index($jenis)
+{
+    if (!array_key_exists($jenis, $this->cards)) {
+        abort(404, 'Jenis template tidak ditemukan.');
     }
+
+    // Ambil template berdasarkan jenis, sekaligus relasi ke user
+    $templates = TemplateSurat::with('creator')
+        ->where('jenis_surat', $jenis)
+        ->orderByDesc('created_at')
+        ->get();
+
+    return view('template.index', [
+        'jenis' => $jenis,
+        'label' => $this->cards[$jenis]['label'],
+        'templates' => $templates,
+    ]);
+}
+
 
     /**
      * Menyimpan template baru
@@ -85,7 +131,8 @@ class TemplateSuratController extends Controller
             'jenis_surat' => $r->jenis_surat,
             'judul_surat' => $originalName,
             'file_path' => $path,
-            'is_active' => false
+            'is_active' => false,
+            'created_by' => auth()->id() // Tambahkan ini
         ]);
 
         return redirect()->route('template.index', ['jenis' => $r->jenis_surat])

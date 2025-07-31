@@ -158,8 +158,9 @@
                                    name="password"
                                    required>
                             <span class="input-group-text" onclick="togglePassword()">
-                                <i class="fas fa-tint" id="toggleIcon"></i>
-                            </span>
+  <i class="fas fa-tint" id="toggleIcon" style="color: #00bfff;"></i>
+</span>
+
                         </div>
                         @error('password')
                             <div class="text-danger text-small mt-1">{{ $message }}</div>

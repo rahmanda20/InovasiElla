@@ -15,77 +15,84 @@
 	<link rel="stylesheet" href="{{ asset('css/vendors_css.css') }}">
 	<link rel="stylesheet" href="{{ asset('css/style.css') }}">
 	<link rel="stylesheet" href="{{ asset('css/skin_color.css') }}">
-	<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
 	<link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet">
 	<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
 	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 
 	{{-- Stack untuk gaya kustom dari halaman lain --}}
-    <style>
-		/* Button Panjang untuk Dashboard */
-		.dashboard-btn {
-			width: 100%;
-			/* Menggunakan seluruh lebar */
-			padding: 15px;
-			font-size: 18px;
-			color: white;
-			background-color: #133E87;
-			/* Biru */
-			border: none;
-			border-radius: 5px;
-			margin-bottom: 20px;
-			text-align: center;
-			transition: background-color 0.3s ease;
+   <style>
+	html {
+		font-size: 90%;
+	}
+	.dashboard-btn {
+		width: 100%; /* Menggunakan seluruh lebar */
+		padding: 15px;
+		font-size: 18px;
+		color: white;
+		background-color: #0D92F4; /* Biru */
+		border: none;
+		border-radius: 5px;
+		margin-bottom: 20px;
+		text-align: center;
+		transition: background-color 0.3s ease;
+	}
+
+
+	.modal-backdrop {
+		background-color: rgba(0, 0, 0, 0.1) !important; /* Paksa transparansi lebih tinggi */
+	}
+
+
+	.knowledge-btn {
+		width: 100%; /* Menggunakan seluruh lebar */
+		padding: 15px;
+		font-size: 18px;
+		color: white;
+		background-color: #e53935; /* Merah */
+		border: none;
+		border-radius: 5px;
+		margin-bottom: 20px;
+		text-align: center;
+		transition: background-color 0.3s ease;
+	}
+
+	.compliance-box {
+		background-position: right bottom;
+		background-repeat: no-repeat;
+		border-bottom: 2px solid #0056b3;
+	}
+
+	.menu-link {
+		display: block;
+		color: black;
+		text-decoration: none;
+		border-radius: 8px; /* Menambahkan sedikit kelengkungan pada sudut */
+		margin-bottom: 4px; /* Jarak antar menu item */
+	}
+
+		.menu-link.active {
+			background-color: #0D92F4;
+			color: white !important;
+			border-radius: 8px; /* Menambahkan kelengkungan yang sama pada menu yang aktif */
 		}
 
+			.menu-link.active i {
+				color: white !important;
+			}
 
-
-		/* Button Panjang untuk Knowledge Management */
-		.knowledge-btn {
-			width: 100%;
-			/* Menggunakan seluruh lebar */
-			padding: 15px;
-			font-size: 18px;
-			color: white;
-			background-color: #e53935;
-			/* Merah */
-			border: none;
-			border-radius: 5px;
-			margin-bottom: 20px;
-			text-align: center;
-			transition: background-color 0.3s ease;
+		.menu-link i {
+			color: black;
 		}
 
+	
+	.main-sidebar {
+		margin-top: 2vh !important;
+		padding-top: 48px; /* jika ingin ada jarak sedikit dari atas */
+		font-size: 0.9 rem;
+	}
 
-		.compliance-box {
-			background-position: right bottom;
-			background-repeat: no-repeat;
-			border-bottom: 5px solid #0056b3;
-		}
-		.menu-link {
-    display: block;
-    padding: 10px;
-    color: black;
-    text-decoration: none;
-}
 
-.menu-link.active {
-    background-color: blue;
-    color: white !important;
-    border-radius: 5px;
-}
-
-/* Ubah warna ikon menjadi putih saat menu aktif */
-.menu-link.active i {
-    color: white !important;
-}
-
-.treeview:not(.menu-open) > a {
-    background-color: white;
-    color: black;
-}
-
-	</style>
+</style>
 	@stack('styles')
 
 </head>
@@ -497,97 +504,14 @@
 
 
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
-	<script>
-		$(document).ready(function() {
-			if ($.fn.DataTable.isDataTable('#dataTable')) {
-				$('#dataTable').DataTable().destroy();
-			}
-
-			let table = $('#dataTable').DataTable({
-				"pagingType": "full_numbers",
-				"language": {
-					"paginate": {
-						"previous": "&laquo;",
-						"next": "&raquo;"
-					}
-				},
-				"dom": '<"d-flex justify-content-between"<""l><""f>>t<"d-flex justify-content-between"ip>',
-				"responsive": false,
-				"autoWidth": false,
-				"scrollX": true
-			});
-
-			// Integrasi dengan pencarian eksternal
-			$('#search-input').on('keyup', function() {
-				table.search(this.value).draw();
-			});
-		});
-	</script>
+	
 
 	<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-	<script>
-		document.querySelectorAll('.btn-hapus').forEach(button => {
-			button.addEventListener('click', function(event) {
-				event.preventDefault();
-				const form = this.closest('form');
-				Swal.fire({
-					title: 'Apakah Anda yakin?',
-					text: "Data yang dihapus tidak bisa dikembalikan!",
-					icon: 'warning',
-					showCancelButton: true,
-					confirmButtonColor: '#3085d6',
-					cancelButtonColor: '#d33',
-					confirmButtonText: 'Ya, hapus!'
-				}).then((result) => {
-					if (result.isConfirmed) {
-						form.submit();
-					}
-				});
-			});
-		});
-	</script>
 
 
 
-	<script>
-		$(document).ready(function() {
-			console.log("✅ jQuery Version:", $.fn.jquery);
-			console.log("✅ Select2 Loaded:", typeof $.fn.select2 !== "undefined");
 
-			if (typeof $.fn.select2 !== "undefined") {
-				// Inisialisasi Select2 secara global
-				$('.select2').select2({
-					placeholder: "Cari...",
-					allowClear: true,
-					width: '100%',
-					minimumResultsForSearch: 0,
-					language: {
-						noResults: function() {
-							return "Data tidak ditemukan";
-						}
-					}
-				});
-
-				// Re-inisialisasi Select2 ketika modal dibuka
-				$('#modal-center').on('shown.bs.modal', function() {
-					$('.select2').select2({
-						dropdownParent: $('#modal-center'), // Memastikan dropdown muncul di dalam modal
-						placeholder: "Search....",
-						allowClear: true,
-						width: '100%',
-						minimumResultsForSearch: 0,
-						language: {
-							noResults: function() {
-								return "Data tidak ditemukan";
-							}
-						}
-					});
-				});
-			} else {
-				console.error("❌ Select2 tidak terdeteksi. Pastikan file Select2 dimuat dengan benar.");
-			}
-		});
-	</script>
+	
 
 @yield('scripts')
 

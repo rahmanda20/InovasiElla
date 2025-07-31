@@ -117,48 +117,50 @@ public function DokumenKontrak()
     }
 
     // Generate file Excel dari template
-    protected function generateExcelFromTemplate($surat, $template)
-    {
-        $templatePath = storage_path('app/public/' . $template->file_path);
-        if (!file_exists($templatePath)) {
-            throw new \Exception("File template tidak ditemukan");
-        }
+ protected function generateExcelFromTemplate($surat, $template)
+{
+    $templatePath = storage_path('app/public/' . $template->file_path);
+    if (!file_exists($templatePath)) {
+        throw new \Exception("File template tidak ditemukan");
+    }
 
-        $spreadsheet = IOFactory::load($templatePath);
-        $sheet = $spreadsheet->getActiveSheet();
+    $spreadsheet = IOFactory::load($templatePath);
+    $sheet = $spreadsheet->getActiveSheet();
 
-        // Replace placeholder
-        $placeholders = [
-            '{{judul_surat}}' => $surat->judul_surat,
-            '{{jenis_surat}}' => $surat->jenis_surat,
-            '{{jenis_dokumen}}' => $surat->jenis_dokumen,
-            '{{tanggal}}' => now()->format('d-m-Y'),
-        ];
+    // Replace placeholder
+    $placeholders = [
+        '{{judul_surat}}'    => $surat->judul_surat,
+        '{{jenis_surat}}'    => $surat->jenis_surat,
+        '{{jenis_dokumen}}'  => $surat->jenis_dokumen,
+        '{{nomor_surat}}'    => $surat->nomor_surat, // tambahkan ini
+        '{{tanggal}}'        => now()->format('d-m-Y'),
+    ];
 
-        foreach ($sheet->getRowIterator() as $row) {
-            foreach ($row->getCellIterator() as $cell) {
-                $value = $cell->getValue();
-                if (is_string($value)) {
-                    foreach ($placeholders as $key => $replacement) {
-                        $value = str_replace($key, $replacement, $value);
-                    }
-                    $cell->setValue($value);
+    foreach ($sheet->getRowIterator() as $row) {
+        foreach ($row->getCellIterator() as $cell) {
+            $value = $cell->getValue();
+            if (is_string($value)) {
+                foreach ($placeholders as $key => $replacement) {
+                    $value = str_replace($key, $replacement, $value);
                 }
+                $cell->setValue($value);
             }
         }
-
-        // Simpan file
-        $directory = 'surat/excel';
-        Storage::disk('public')->makeDirectory($directory);
-        
-        $fileName = 'surat_' . $surat->id . '.xlsx';
-        $filePath = $directory . '/' . $fileName;
-
-        $writer = new Xlsx($spreadsheet);
-        $writer->save(storage_path('app/public/' . $filePath));
-
-        $surat->update(['file_excel' => $filePath]);
     }
+
+    // Simpan file
+    $directory = 'surat/excel';
+    Storage::disk('public')->makeDirectory($directory);
+    
+    $fileName = 'surat_' . $surat->id . '.xlsx';
+    $filePath = $directory . '/' . $fileName;
+
+    $writer = new Xlsx($spreadsheet);
+    $writer->save(storage_path('app/public/' . $filePath));
+
+    $surat->update(['file_excel' => $filePath]);
+}
+
 
     // Export file
     public function exportExcel($id)

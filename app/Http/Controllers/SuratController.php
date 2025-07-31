@@ -12,6 +12,10 @@ use ZipArchive;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
+
+
 
 class SuratController extends Controller
 {
@@ -100,9 +104,9 @@ public function list($jenis_dokumen, $jenis_surat)
 public function store(Request $request)
 {
     $request->validate([
-        'judul_surat' => 'required|string|max:255',
-        'jenis_dokumen' => 'required|string',
-        'jenis_surat' => 'required|string',
+        'judul_surat'    => 'required|string|max:255',
+        'jenis_dokumen'  => 'required|string',
+        'jenis_surat'    => 'required|string',
     ]);
 
     // Cek duplicate
@@ -125,13 +129,40 @@ public function store(Request $request)
         return redirect()->back()->with('error', 'Template Excel aktif tidak ditemukan!');
     }
 
-    // Buat record surat baru
+    // Ambil bulan dan tahun sekarang
+    $now = Carbon::now();
+    $bulanRomawi = [
+        1 => 'I', 2 => 'II', 3 => 'III', 4 => 'IV',
+        5 => 'V', 6 => 'VI', 7 => 'VII', 8 => 'VIII',
+        9 => 'IX', 10 => 'X', 11 => 'XI', 12 => 'XII'
+    ];
+
+    $bulan = $bulanRomawi[$now->month];
+    $tahun = $now->year;
+
+    // Hitung jumlah surat sebelumnya untuk jenis_surat tersebut bulan ini
+    $countThisMonth = Surat::where('jenis_surat', $request->jenis_surat)
+        ->whereMonth('created_at', $now->month)
+        ->whereYear('created_at', $now->year)
+        ->count();
+
+    // Nomor surat dalam 3 digit
+    $urut = str_pad($countThisMonth + 1, 3, '0', STR_PAD_LEFT);
+
+    // Format nomor surat: 001/ND/MPS/VII/2025
+    $kodeSurat = strtoupper($request->jenis_surat); // Misal: 'nd'
+    $nomorSuratFormatted = "$urut/$kodeSurat/PUPR/$bulan/$tahun";
+
+    // Buat record surat
     $surat = Surat::create([
-        'judul_surat' => $request->judul_surat,
-        'jenis_dokumen' => $request->jenis_dokumen,
-        'jenis_surat' => $request->jenis_surat,
+        'judul_surat'    => $request->judul_surat,
+        'jenis_dokumen'  => $request->jenis_dokumen,
+        'jenis_surat'    => $request->jenis_surat,
+        'nomor_surat'    => $nomorSuratFormatted,
+        'created_by'     => Auth::id(),
     ]);
 
+    // Generate file dari template
     try {
         $this->generateExcelFromTemplate($surat, $template);
     } catch (\Exception $e) {
@@ -173,27 +204,29 @@ public function store(Request $request)
     }
 
     // Mengganti placeholder di Excel
-    protected function replacePlaceholders($sheet, $surat)
-    {
-        $placeholders = [
-            '{{judul_surat}}'     => $surat->judul_surat,
-            '{{jenis_surat}}'     => $surat->jenis_surat,
-            '{{jenis_dokumen}}'   => $surat->jenis_dokumen,
-            '{{tanggal}}'         => now()->format('d-m-Y'),
-        ];
+protected function replacePlaceholders($sheet, $surat)
+{
+    $placeholders = [
+        '{{judul_surat}}'     => $surat->judul_surat,
+        '{{jenis_surat}}'     => $surat->jenis_surat,
+        '{{jenis_dokumen}}'   => $surat->jenis_dokumen,
+        '{{tanggal}}'         => now()->format('d-m-Y'),
+        '{{nomor_surat}}'     => $surat->nomor_surat, // ✅ Tambahkan ini
+    ];
 
-        foreach ($sheet->getRowIterator() as $row) {
-            foreach ($row->getCellIterator() as $cell) {
-                $value = $cell->getValue();
-                if (is_string($value) && strpos($value, '{{') !== false) {
-                    foreach ($placeholders as $key => $replacement) {
-                        $value = str_replace($key, $replacement, $value);
-                    }
-                    $cell->setValue($value);
+    foreach ($sheet->getRowIterator() as $row) {
+        foreach ($row->getCellIterator() as $cell) {
+            $value = $cell->getValue();
+            if (is_string($value) && strpos($value, '{{') !== false) {
+                foreach ($placeholders as $key => $replacement) {
+                    $value = str_replace($key, $replacement, $value);
                 }
+                $cell->setValue($value);
             }
         }
     }
+}
+
 
 
 
@@ -207,6 +240,23 @@ public function massCreate(Request $request)
 
     $judul = $request->judul;
     $jenisDokumen = 'pengadaan_langsung';
+    $user = Auth::user(); // pastikan middleware 'auth' aktif
+    $userId = Auth::id();
+
+    // Penomoran surat berdasarkan bulan dan tahun
+    $now = Carbon::now();
+    $bulanRomawi = [1=>'I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'];
+    $bulan = $bulanRomawi[$now->month];
+    $tahun = $now->year;
+
+    // Hitung jumlah surat bulan ini
+    $countThisMonth = Surat::whereMonth('created_at', $now->month)
+        ->whereYear('created_at', $now->year)
+        ->count();
+
+    // Nomor surat format 001/SPPK/MPS/VII/2025
+    $urut = str_pad($countThisMonth + 1, 3, '0', STR_PAD_LEFT);
+    $nomorSuratFormatted = "$urut/ALL/MPS/$bulan/$tahun";
 
     $suratOptions = [
         'sppbj', 'spk', 'spmk', 'bapl', 'hps', 'timeschedule',
@@ -239,16 +289,18 @@ public function massCreate(Request $request)
         }
 
         $surat = Surat::create([
-            'judul_surat' => $judul,
+            'judul_surat'   => $judul,
             'jenis_dokumen' => $jenisDokumen,
-            'jenis_surat' => $jenisSurat,
+            'jenis_surat'   => $jenisSurat,
+            'nomor_surat'   => $nomorSuratFormatted,
+            'created_by'      => $userId,
         ]);
 
         try {
             $this->generateExcelFromTemplate($surat, $template);
             $created[] = strtoupper($jenisSurat);
         } catch (\Exception $e) {
-            // gagal generate, abaikan atau bisa dicatat jika perlu
+            // Gagal generate, abaikan atau log jika perlu
         }
     }
 
@@ -338,6 +390,7 @@ public function downloadZip(Request $request)
     public function exportExcel($id)
     {
         $surat = Surat::findOrFail($id);
+        dd($surat);
 
         if (!$surat->file_excel) {
             return back()->with('error', 'File Excel belum tersedia untuk surat ini!');

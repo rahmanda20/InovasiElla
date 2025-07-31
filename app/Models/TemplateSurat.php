@@ -12,9 +12,15 @@ class TemplateSurat extends Model
     protected $table = 'template_surats'; // pastikan sesuai dengan nama tabel di database
 
     protected $fillable = [
-        'jenis_surat',
-        'judul_surat',
-        'file_path',
-        'is_active',
-    ];
+    'jenis_surat',
+    'judul_surat',
+    'file_path',
+    'is_active',
+    'created_by',
+];
+public function creator()
+{
+    return $this->belongsTo(User::class, 'created_by');
+}
+
 }

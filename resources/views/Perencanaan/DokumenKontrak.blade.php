@@ -83,41 +83,5 @@
     </div>
 </div>
 
-<style>
-.dashboard-btn {
-    background-color: #3AA4F2;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 5px;
-    font-weight: bold;
-    margin-bottom: 20px;
-}
 
-.knowledge-btn {
-    background-color: #6c757d;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 5px;
-    font-weight: bold;
-    margin: 20px 0;
-}
-
-.section-title {
-    color: #3AA4F2;
-    font-weight: bold;
-}
-
-.box {
-    border-radius: 10px;
-    transition: transform 0.3s ease;
-    margin-bottom: 20px;
-}
-
-.box:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-}
-</style>
 @endsection
